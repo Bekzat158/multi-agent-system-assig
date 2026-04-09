@@ -1,5 +1,7 @@
 <div align="center">
 
+<a href="README.ru.md">🇷🇺 Читать на русском</a>
+
 # 🛡️ FedGuard-IIoT
 
 ### Communication-Efficient and Robust Federated Anomaly Detection  
@@ -17,21 +19,21 @@
 
 ---
 
-## 📌 О проекте
+## 📌 About the Project
 
-**FedGuard-IIoT** — исследовательский проект, посвящённый задаче **федеративного обнаружения аномалий** в промышленных IoT-сетях (IIoT). Главная цель — разработать и экспериментально проверить модульную систему, которая одновременно решает три ключевые проблемы реальных edge-развёртываний:
+**FedGuard-IIoT** is a research project focused on **federated anomaly detection** in Industrial IoT (IIoT) edge networks. The goal is to design and experimentally validate a modular system that simultaneously solves three critical challenges in real-world edge deployments:
 
-| Проблема | Наше решение |
-|----------|-------------|
-| 🔗 **Ограниченная полоса uplink** | Top-K sparsification + error-feedback |
-| 📊 **Неоднородность данных (non-IID)** | FedProx + персонализированные пороги |
-| ☠️ **Злоумышленные клиенты (Byzantine)** | Robust aggregation: RFA / Median / Krum |
+| Challenge | Our Solution |
+|-----------|-------------|
+| 🔗 **Limited uplink bandwidth** | Top-K sparsification + error-feedback |
+| 📊 **Data heterogeneity (non-IID)** | FedProx + personalized thresholds |
+| ☠️ **Byzantine / malicious clients** | Robust aggregation: RFA / Median / Krum |
 
-> В отличие от классического FedAvg, который уязвим к атакам и плохо работает при неоднородных данных, наша система сохраняет высокое качество детекции аномалий **даже при 30% атакующих клиентах** и **10-кратном сжатии трафика**.
+> Unlike vanilla FedAvg that is vulnerable to attacks and instability under heterogeneous data, our system maintains high anomaly detection quality **even with 30% malicious clients** and **10× traffic reduction**.
 
 ---
 
-## 🏗️ Архитектура системы
+## 🏗️ System Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -45,13 +47,12 @@
 └───────────────────────┬─────────────────────────────────────┘
                         │  Compressed Updates Δ̂ₖ
                 ┌───────▼────────┐
-                │  FL  Server    │
-                │                │
-                │ ┌────────────┐ │
-                │ │   RFA /    │ │
-                │ │  Median /  │ │  ← Robust Aggregation
-                │ │   Krum     │ │
-                │ └────────────┘ │
+                │   FL  Server   │
+                │  ┌──────────┐  │
+                │  │  RFA /   │  │
+                │  │ Median / │  │  ← Robust Aggregation
+                │  │  Krum    │  │
+                │  └──────────┘  │
                 │  Global θ      │
                 └───────┬────────┘
                         │ Broadcast
@@ -61,176 +62,167 @@
 
 ---
 
-## 🧠 ML-стек: модели и методы
+## 🧠 ML Stack: Models & Methods
 
-### 🔵 Модель: LSTM Autoencoder (LSTM-AE)
+### 🔵 Model: LSTM Autoencoder (LSTM-AE)
 
-Основная модель обнаружения аномалий — **реконструкционный автоэнкодер** на основе LSTM. Обучается только на **нормальных данных** (unsupervised). Аномалия = высокая ошибка реконструкции.
+The core anomaly detection model is a **reconstruction-based autoencoder** built on LSTM layers. Trained exclusively on **normal data** (fully unsupervised). An anomaly = high reconstruction error.
 
 ```
-Вход:  X ∈ ℝ^(W×F)   (окно W=30 шагов, F=6 сенсоров)
-       ↓
-   LSTM Encoder  →  z ∈ ℝ^16  (латентное представление)
-       ↓
-   LSTM Decoder  →  X̂ ∈ ℝ^(W×F)
-       ↓
-Score: s(X) = (1/WF) ‖X - X̂‖²_F    (anomaly score)
+Input:  X ∈ ℝ^(W×F)   (window W=30 steps, F=6 sensors)
+        ↓
+  LSTM Encoder  →  z ∈ ℝ^16  (latent representation)
+        ↓
+  LSTM Decoder  →  X̂ ∈ ℝ^(W×F)
+        ↓
+Score:  s(X) = (1/WF) ‖X - X̂‖²_F    (anomaly score)
+Anomaly if s(X) > τ   (τ = 95th percentile of training errors)
 ```
 
-**Параметры модели:**
-- Hidden size: `H = 48`
-- Latent size: `L = 16`  
-- Параметров: ~51K (пригодно для edge-устройств)
-- Порог τ: 95-й процентиль training-ошибок
-
-### 🟢 Федеративное обучение
-
-| Метод | Роль | Ключевой параметр |
-|-------|------|------------------|
-| **FedAvg** | Базовый агрегатор | — |
-| **FedProx** | non-IID стабилизация | μ = 0.01 (proximal term) |
-| **Top-K sparsification** | Сжатие обновлений | κ = 10% (передаём только топ-10% весов) |
-| **Error-feedback** | Компенсация ошибки компрессии | Накопленный остаток eₖ |
-
-### 🔴 Robust Aggregation (защита от атак)
-
-| Агрегатор | Принцип | Устойчивость |
-|-----------|---------|-------------|
-| **FedAvg** | Среднее | ❌ Уязвим |
-| **Coord. Median** | Координатная медиана | ✅ Хорошая |
-| **Trimmed Mean** | Усечённое среднее (10%) | ✅ Хорошая |
-| **Krum** | Ближайший сосед | ✅ Теоретически строгая |
-| **RFA** | Геометрическая медиана (Weiszfeld) | ✅ Лучшая |
-
-### ☠️ Смоделированные атаки
-
-```python
-- Model Poisoning    → случайный/направленный шум в обновлениях
-- Scaled Poisoning   → инверсия и масштабирование градиентов  
-- Label Flipping     → инверсия меток аномалий
-- On-Off Attack      → чередование честных и атакующих раундов
-```
+**Model specs:** Hidden `H=48` · Latent `L=16` · ~51K parameters · Suitable for edge hardware
 
 ---
 
-## 📊 Результаты экспериментов
+### 🟢 Federated Learning Methods
 
-### Коммуникационная эффективность
+| Method | Role | Key Parameter |
+|--------|------|--------------|
+| **FedAvg** | Baseline aggregator | — |
+| **FedProx** | non-IID stabilization | μ = 0.01 (proximal term) |
+| **Top-K sparsification** | Gradient compression | κ = 10% (top-10% values sent) |
+| **Error-feedback** | Bias correction after compression | Accumulated residual eₖ |
 
-| Конфиг | AUROC | F1 | Трафик (MB) | Экономия |
-|--------|-------|----|-------------|---------|
+Each round: sample 60% of clients → 3 local epochs → compress → aggregate → broadcast.
+
+---
+
+### 🔴 Robust Aggregation (Byzantine Defence)
+
+| Aggregator | Principle | Robustness |
+|------------|-----------|-----------|
+| **FedAvg** | Arithmetic mean | ❌ Vulnerable |
+| **Coord. Median** | Per-coordinate median | ✅ Good |
+| **Trimmed Mean** | Trim 10% from each end | ✅ Good |
+| **Krum** | Nearest-neighbour selection | ✅ Theoretically strict |
+| **RFA** | Geometric median (Weiszfeld) | ✅ Best overall |
+
+---
+
+### ☠️ Adversarial Attack Scenarios
+
+| Attack | Description |
+|--------|-------------|
+| **Model Poisoning** | Random/targeted noise injected into model updates |
+| **Scaled Poisoning** | Gradient inversion + scaling to amplify damage |
+| **Label Flipping** | Anomaly labels inverted during local training |
+| **On-Off Attack** | Alternates honest and malicious rounds to evade detection |
+
+---
+
+## 📊 Experimental Results
+
+### Communication Efficiency
+
+| Configuration | AUROC | F1 | Traffic (MB) | Savings |
+|---------------|-------|----|-------------|---------|
 | FedAvg (baseline) | 0.703 | 0.231 | 22.37 | — |
 | FedProx | 0.695 | 0.251 | 22.37 | — |
 | **TopK-10%** | 0.690 | 0.248 | **2.24** | **10×** |
-| **FedProx+TopK** | 0.701 | 0.229 | **2.24** | **10×** |
+| **FedProx + TopK** | 0.701 | 0.229 | **2.24** | **10×** |
 
-### Устойчивость к атакам (model poisoning)
+### Robustness Under Byzantine Attacks (model poisoning)
 
-| Агрегатор | α=0% | α=10% | α=20% | α=30% |
-|-----------|------|-------|-------|-------|
+| Aggregator | α=0% | α=10% | α=20% | α=30% |
+|------------|------|-------|-------|-------|
 | FedAvg | 0.77 | 0.51 | 0.50 | 0.51 |
-| Median | 0.77 | 0.72 | **0.82** | **0.78** |
+| **Median** | 0.77 | 0.72 | **0.82** | **0.78** |
 | RFA | 0.64 | 0.66 | 0.71 | 0.70 |
 
-### On-Off атака vs. устойчивые агрегаторы (α=20%)
+### On-Off Evasion vs Persistent Attacks (α = 20%)
 
 | | Persistent Poisoning | On-Off Attack |
 |-|---------------------|---------------|
 | FedAvg | 0.49 | 0.49 |
-| Median | **0.84** | **0.82** |
+| **Median** | **0.84** | **0.82** |
 | RFA | 0.71 | 0.68 |
 
 ---
 
-## 🗂️ Структура проекта
+## 🗂️ Project Structure
 
 ```
 multi/
 │
-├── 📄 sn-article.typ          ← Typst-исходник научной статьи
-├── 📄 sn-article.pdf          ← Скомпилированная статья (1.4 MB)
-├── 📄 run_experiments.py      ← Главный пайплайн (запустить всё)
-├── 📄 pyproject.toml          ← uv зависимости
-├── 🔧 typst                   ← Бинарник Typst для компиляции PDF
+├── 📄 sn-article.typ          ← Typst source of the scientific article
+├── 📄 sn-article.pdf          ← Compiled article (1.4 MB)
+├── 📄 run_experiments.py      ← Main pipeline (runs everything)
+├── 📄 pyproject.toml          ← uv dependencies
+├── 🔧 typst                   ← Typst binary for PDF compilation
 │
-├── src/                       ← Весь ML-код
-│   ├── data_gen.py            ← Генератор синтетического IIoT датасета
+├── src/
+│   ├── data_gen.py            ← Synthetic IIoT dataset generator
 │   ├── models.py              ← LSTM Autoencoder + Deep SVDD
-│   ├── fl_engine.py           ← FL движок (FedAvg/FedProx/TopK/агрегаторы)
-│   ├── attacks.py             ← Реализации атак (poisoning/on-off/flipping)
-│   ├── experiments.py         ← 5 экспериментов с метриками
-│   └── visualization.py       ← Генерация 8 публикационных графиков
+│   ├── fl_engine.py           ← FL engine (FedAvg/FedProx/TopK/aggregators)
+│   ├── attacks.py             ← Attack implementations
+│   ├── experiments.py         ← 5 experiments with metrics
+│   └── visualization.py       ← 8 publication-quality figures
 │
-├── data/                      ← Синтетический датасет (auto-generated)
-│   ├── client_0_train.npy
-│   ├── client_0_test.npy
-│   └── ...
-│
-├── figures/                   ← Все графики (8 PNG файлов)
-│   ├── fig_architecture_diagram.png
-│   ├── fig_dataset_overview.png
-│   ├── fig_fl_convergence.png
-│   ├── fig_communication_overhead.png
-│   ├── fig_anomaly_detection.png
-│   ├── fig_robustness_comparison.png
-│   ├── fig_ablation_study.png
-│   └── fig_on_off_attack.png
-│
+├── data/                      ← Auto-generated synthetic dataset (.npy)
+├── figures/                   ← All 8 experiment figures (PNG)
 ├── results/
-│   └── experiment_results.json ← Все численные результаты
-│
-└── deep-research-report.md    ← Исходный research-report (основа статьи)
+│   └── experiment_results.json
+└── deep-research-report.md    ← Original research report
 ```
 
 ---
 
-## 🚀 Быстрый старт
+## 🚀 Quick Start
 
 ```bash
-# 1. Установить зависимости
+# 1. Install dependencies
 uv sync
 
-# 2. Запустить все эксперименты (~26 мин на GPU)
+# 2. Run all experiments  (~26 min on GPU)
 uv run python run_experiments.py
 
-# 3. Скомпилировать PDF статью
+# 3. Compile the PDF article
 ./typst compile sn-article.typ sn-article.pdf
 ```
 
-### Зависимости
+### Dependencies
 
 ```toml
-torch >= 2.2.0
-numpy >= 1.26.0
-scikit-learn >= 1.4.0
-matplotlib >= 3.8.0
-seaborn >= 0.13.0
-pandas >= 2.2.0
-scipy >= 1.12.0
-tqdm >= 4.66.0
+torch >= 2.2.0        # Deep learning
+numpy >= 1.26.0       # Numerics
+scikit-learn >= 1.4.0 # Metrics (AUROC, F1)
+matplotlib >= 3.8.0   # Plotting
+seaborn >= 0.13.0     # Style
+pandas >= 2.2.0       # Data handling
+scipy >= 1.12.0       # Stats
+tqdm >= 4.66.0        # Progress bars
 ```
 
 ---
 
-## 📐 Датасет
+## 📐 Dataset
 
-Синтетический **IIoT multi-client benchmark** — 5 клиентов (edge-узлов) с разными параметрами (non-IID):
+Synthetic **IIoT multi-client benchmark** — 5 clients (edge nodes) with different parameters (non-IID by design):
 
-| Клиент | Частота | Амплитуда | Шум | Роль |
-|--------|---------|-----------|-----|------|
+| Client | Frequency | Amplitude | Noise | Role |
+|--------|-----------|-----------|-------|------|
 | 0 | 0.010 | 1.0 | 0.05 | Factory Line A |
 | 1 | 0.018 | 1.4 | 0.08 | SCADA Node |
 | 2 | 0.026 | 1.8 | 0.11 | Edge Gateway |
 | 3 | 0.034 | 2.2 | 0.14 | Sensor Array |
 | 4 | 0.042 | 2.6 | 0.17 | PLC Unit |
 
-**Типы аномалий:** point spikes, drift segments, pattern shifts (~6% от данных)
+**Anomaly types injected:** Point spikes · Drift segments · Pattern shifts (~6% of data)
 
 ---
 
-## 📖 Публикация
+## 📖 Publication
 
-Статья оформлена в стиле **Springer Nature** через [Typst](https://typst.app):
+The article is typeset in **Springer Nature** style using [Typst](https://typst.app):
 
 ```
 Communication-Efficient and Robust Federated Anomaly Detection
