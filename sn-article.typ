@@ -94,6 +94,8 @@
     when 30% of clients are Byzantine adversaries ---
     a setting where vanilla FedAvg degrades to near-random performance.
     Ablation studies confirm the complementary contributions of each component.
+
+    *Code Availability:* The source code and project materials are available at #link("https://github.com/Bekzat158/multi-agent-system-assig").
   ]
 
   #v(0.6em)
