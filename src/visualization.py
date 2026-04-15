@@ -1,433 +1,700 @@
 """
-Visualization Module: generate all figures for the research article.
-Saves all plots to figures/ directory with publication-quality styling.
+Visualization module for the article figure set.
+
+All figures are redrawn with a consistent publication-oriented design system and
+saved to figures/ as both PNG and PDF.
 """
 
+from __future__ import annotations
+
 import os
-import numpy as np
-import matplotlib.pyplot as plt
+
 import matplotlib.patches as mpatches
+import matplotlib.pyplot as plt
+import numpy as np
 import seaborn as sns
-from matplotlib.gridspec import GridSpec
 
-# ─────────────────────────── Style Setup ─────────────────────────────────────
 
-def setup_style():
-    """Apply consistent publication-quality style."""
-    plt.rcParams.update({
-        "font.family": "DejaVu Sans",
-        "font.size": 11,
-        "axes.titlesize": 13,
-        "axes.labelsize": 12,
-        "xtick.labelsize": 10,
-        "ytick.labelsize": 10,
-        "legend.fontsize": 10,
-        "figure.dpi": 150,
-        "figure.facecolor": "white",
-        "axes.facecolor": "#f8f9fa",
-        "axes.grid": True,
-        "grid.alpha": 0.4,
-        "grid.linestyle": "--",
-        "lines.linewidth": 2.0,
-        "axes.spines.top": False,
-        "axes.spines.right": False,
-    })
+SAVE_DIR = "figures"
+PNG_DPI = 500
 
-COLORS = {
-    "FedAvg":         "#2196F3",
-    "FedProx":        "#4CAF50",
-    "TopK-10%":       "#FF9800",
-    "FedProx+TopK":   "#9C27B0",
-    "fedavg":         "#2196F3",
-    "median":         "#4CAF50",
-    "trimmed_mean":   "#FF9800",
-    "krum":           "#9C27B0",
-    "rfa":            "#F44336",
-    "fltrust":        "#009688",
+METHOD_COLORS = {
+    "FedAvg": "#4C78A8",
+    "FedProx": "#72B7B2",
+    "TopK-10%": "#F58518",
+    "FedProx+TopK": "#54A24B",
+    "fedavg": "#4C78A8",
+    "median": "#B279A2",
+    "trimmed_mean": "#E45756",
+    "krum": "#9D755D",
+    "rfa": "#2F6B3B",
 }
 
 ATTACK_COLORS = {
-    "model_poisoning": "#E53935",
-    "on_off":          "#FF6F00",
+    "model_poisoning": "#C44E52",
+    "on_off": "#DD8452",
 }
 
-SAVE_DIR = "figures"
+DETECTION_COLORS = {
+    "signal": "#4C78A8",
+    "score": "#7A5195",
+    "threshold": "#D62728",
+    "anomaly": "#D62728",
+    "tp": "#2CA02C",
+    "fp": "#FF7F0E",
+    "fn": "#D62728",
+    "tn": "#BDBDBD",
+}
 
 
-def save(fig, name: str, bbox_inches: str = "tight"):
+def setup_style():
+    """Apply a compact, publication-safe style across all figures."""
+    plt.rcParams.update(
+        {
+            "font.family": "DejaVu Sans",
+            "font.size": 8,
+            "axes.titlesize": 9,
+            "axes.labelsize": 9,
+            "xtick.labelsize": 8,
+            "ytick.labelsize": 8,
+            "legend.fontsize": 8,
+            "figure.facecolor": "white",
+            "axes.facecolor": "white",
+            "savefig.facecolor": "white",
+            "savefig.transparent": False,
+            "axes.edgecolor": "#4D4D4D",
+            "axes.linewidth": 0.8,
+            "axes.spines.top": False,
+            "axes.spines.right": False,
+            "axes.grid": False,
+            "grid.color": "#D9D9D9",
+            "grid.linewidth": 0.5,
+            "grid.alpha": 0.6,
+            "lines.linewidth": 1.6,
+            "pdf.fonttype": 42,
+            "ps.fonttype": 42,
+        }
+    )
+    sns.set_style("white")
+
+
+def save(fig, name: str):
     os.makedirs(SAVE_DIR, exist_ok=True)
-    path = os.path.join(SAVE_DIR, name)
-    fig.savefig(path, bbox_inches=bbox_inches, dpi=150)
+    base, _ = os.path.splitext(name)
+    png_path = os.path.join(SAVE_DIR, f"{base}.png")
+    pdf_path = os.path.join(SAVE_DIR, f"{base}.pdf")
+    fig.savefig(png_path, dpi=PNG_DPI, bbox_inches="tight", pad_inches=0.03)
+    fig.savefig(pdf_path, bbox_inches="tight", pad_inches=0.03)
     plt.close(fig)
-    print(f"  Saved: {path}")
+    print(f"  Saved: {png_path}")
+    print(f"  Saved: {pdf_path}")
 
 
-# ─────────────────────────── Figure 1: Dataset Overview ──────────────────────
+def add_panel_label(ax, label: str):
+    ax.text(
+        -0.14,
+        1.04,
+        label,
+        transform=ax.transAxes,
+        fontsize=11,
+        fontweight="bold",
+        va="bottom",
+        ha="left",
+    )
+
+
+def style_axis(
+    ax, xlabel: str | None = None, ylabel: str | None = None, ygrid: bool = True
+):
+    if xlabel:
+        ax.set_xlabel(xlabel)
+    if ylabel:
+        ax.set_ylabel(ylabel)
+    if ygrid:
+        ax.grid(axis="y")
+    ax.tick_params(length=3.2, width=0.8)
+
+
+def _sort_topk_names(names: list[str]) -> list[str]:
+    def ratio(name: str) -> float:
+        return float(name.split("-")[-1].replace("%", ""))
+
+    return sorted(names, key=ratio, reverse=True)
+
 
 def plot_dataset_overview(client_data: list):
-    """Visualize the synthetic IIoT dataset: non-IID distributions per client."""
+    """Visualize the synthetic IIoT dataset with a compact shared design."""
     setup_style()
     n_clients = len(client_data)
-    n_features = client_data[0]["raw"]["X"].shape[1]
-    n_show = 300  # samples to show
+    n_show = 240
 
-    fig, axes = plt.subplots(n_clients, 1, figsize=(12, 3 * n_clients), sharex=False)
+    fig, axes = plt.subplots(n_clients, 1, figsize=(6.9, 7.4), sharex=True)
+    client_colors = ["#4C78A8", "#59A14F", "#E15759", "#B07AA1", "#76B7B2"]
 
-    client_colors = plt.cm.tab10(np.linspace(0, 0.8, n_clients))
+    line_handle = None
+    anomaly_handle = None
 
     for cid, (cd, ax) in enumerate(zip(client_data, axes)):
-        X = cd["raw"]["X"][:n_show, 0]
+        x = cd["raw"]["X"][:n_show, 0]
         labels = cd["raw"]["labels"][:n_show]
         t = np.arange(n_show)
+        is_anomaly = labels == 1
 
-        ax.plot(t, X, color=client_colors[cid], alpha=0.85, linewidth=1.5, label=f"Sensor 0")
-        anom_mask = labels == 1
-        ax.scatter(t[anom_mask], X[anom_mask], color="#E53935", s=15, zorder=5, label="Anomaly")
-        ax.set_ylabel(f"Client {cid}\n(f={cd['params']['base_freq']:.4f})", fontsize=10)
-        ax.set_xlim(0, n_show)
-        if cid == 0:
-            ax.set_title("Synthetic IIoT Dataset: Non-IID Time-Series per Client", fontsize=14)
-        if cid == n_clients - 1:
-            ax.set_xlabel("Time Step")
-        ax.legend(loc="upper right", fontsize=8)
+        line = ax.plot(t, x, color=client_colors[cid], linewidth=1.0, alpha=0.95)[0]
+        points = ax.scatter(
+            t[is_anomaly],
+            x[is_anomaly],
+            color=DETECTION_COLORS["anomaly"],
+            s=14,
+            zorder=4,
+        )
 
-    plt.tight_layout()
+        line_handle = line_handle or line
+        anomaly_handle = anomaly_handle or points
+
+        ax.set_ylabel(f"C{cid}")
+        ax.margins(x=0)
+        ax.grid(axis="y")
+        ax.spines["left"].set_visible(False)
+        ax.axhline(np.mean(x), color="#E6E6E6", linewidth=0.6, zorder=0)
+
+    style_axis(axes[-1], xlabel="Time step", ygrid=False)
+    for ax in axes[:-1]:
+        ax.set_xlabel("")
+
+    add_panel_label(axes[0], "A")
+    fig.legend(
+        [line_handle, anomaly_handle],
+        ["Sensor signal", "Injected anomaly"],
+        loc="upper center",
+        bbox_to_anchor=(0.5, 0.995),
+        ncol=2,
+        frameon=False,
+        handlelength=2.2,
+        columnspacing=1.5,
+    )
+    fig.subplots_adjust(top=0.93, left=0.10, right=0.99, bottom=0.08, hspace=0.18)
     save(fig, "fig_dataset_overview.png")
 
 
-# ─────────────────────────── Figure 2: FL Convergence ────────────────────────
-
 def plot_fl_convergence(conv_results: dict):
-    """Training loss curves and cumulative communication cost."""
+    """Training loss and cumulative communication cost."""
     setup_style()
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13, 5))
+    fig, (ax1, ax2) = plt.subplots(
+        1, 2, figsize=(7.1, 3.1), gridspec_kw={"width_ratios": [1.08, 1.0]}
+    )
 
-    for name, res in conv_results.items():
-        color = COLORS.get(name, "gray")
-        rounds = range(1, len(res["round_losses"]) + 1)
-        ax1.plot(rounds, res["round_losses"], color=color, label=name)
+    handles = []
+    labels = []
 
-    ax1.set_xlabel("Round")
-    ax1.set_ylabel("Avg. Reconstruction Loss (MSE)")
-    ax1.set_title("FL Convergence: Training Loss per Round")
-    ax1.legend()
+    for name in ["FedAvg", "FedProx", "TopK-10%", "FedProx+TopK"]:
+        if name not in conv_results:
+            continue
+        result = conv_results[name]
+        rounds = np.arange(1, len(result["round_losses"]) + 1)
+        color = METHOD_COLORS[name]
+        line = ax1.plot(rounds, result["round_losses"], color=color, linewidth=1.7)[0]
+        ax2.plot(
+            rounds,
+            np.array(result["cumulative_bytes"]) / 1e6,
+            color=color,
+            linewidth=1.7,
+        )
+        handles.append(line)
+        labels.append(name.replace("+", " + "))
 
-    for name, res in conv_results.items():
-        color = COLORS.get(name, "gray")
-        cum_mb = np.array(res["cumulative_bytes"]) / 1e6
-        ax2.plot(range(1, len(cum_mb) + 1), cum_mb, color=color, label=name)
+    style_axis(ax1, xlabel="Round", ylabel="Training loss")
+    style_axis(ax2, xlabel="Round", ylabel="Cumulative communication (MB)")
+    ax1.set_xlim(1, max(len(v["round_losses"]) for v in conv_results.values()))
+    ax2.set_xlim(1, max(len(v["cumulative_bytes"]) for v in conv_results.values()))
+    ax1.set_ylim(bottom=0)
+    ax2.set_ylim(bottom=0)
+    add_panel_label(ax1, "A")
+    add_panel_label(ax2, "B")
 
-    ax2.set_xlabel("Round")
-    ax2.set_ylabel("Cumulative Communication (MB)")
-    ax2.set_title("Communication Cost over Rounds")
-    ax2.legend()
-
-    plt.tight_layout()
+    fig.legend(
+        handles,
+        labels,
+        loc="upper center",
+        bbox_to_anchor=(0.52, 1.02),
+        ncol=2,
+        frameon=False,
+        columnspacing=1.4,
+        handlelength=2.4,
+    )
+    fig.subplots_adjust(top=0.78, left=0.10, right=0.99, bottom=0.18, wspace=0.28)
     save(fig, "fig_fl_convergence.png")
 
-
-# ─────────────────────────── Figure 3: Communication Overhead ────────────────
 
 def plot_communication_overhead(comm_results: dict):
     """Trade-off between compression ratio, total bytes, and AUROC."""
     setup_style()
-    fig, axes = plt.subplots(1, 2, figsize=(13, 5))
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.1, 3.1))
 
-    names = list(comm_results.keys())
-    ratios = [comm_results[n]["topk_ratio"] * 100 for n in names]
-    total_mb = [comm_results[n]["total_mb"] for n in names]
-    auroc = [comm_results[n]["auroc"] for n in names]
+    names = _sort_topk_names(list(comm_results.keys()))
+    labels = [f"{int(comm_results[name]['topk_ratio'] * 100)}%" for name in names]
+    total_mb = [comm_results[name]["total_mb"] for name in names]
+    auroc = [comm_results[name]["auroc"] for name in names]
+    x = np.arange(len(names))
 
-    # Bar: total comm
-    ax1 = axes[0]
-    bars = ax1.bar(names, total_mb, color=plt.cm.Blues(np.linspace(0.3, 0.9, len(names))), edgecolor="k", linewidth=0.5)
-    ax1.set_ylabel("Total Communication (MB)")
-    ax1.set_title("Communication Cost vs Compression Ratio")
-    ax1.set_xticklabels(names, rotation=30, ha="right")
-    for bar, mb in zip(bars, total_mb):
-        ax1.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.02,
-                 f"{mb:.1f}", ha="center", va="bottom", fontsize=9)
+    bar_colors = ["#F6C58B"] * len(names)
+    if "10%" in labels:
+        bar_colors[labels.index("10%")] = METHOD_COLORS["TopK-10%"]
+    bars = ax1.bar(
+        x, total_mb, width=0.64, color=bar_colors, edgecolor="#666666", linewidth=0.5
+    )
+    for bar, value in zip(bars, total_mb):
+        ax1.text(
+            bar.get_x() + bar.get_width() / 2,
+            value + 0.18,
+            f"{value:.1f}",
+            ha="center",
+            va="bottom",
+            fontsize=8,
+        )
 
-    # Scatter: AUROC vs compression ratio
-    ax2 = axes[1]
-    scatter = ax2.scatter(ratios, auroc, c=total_mb, cmap="RdYlGn", s=120, edgecolor="k", zorder=5)
-    plt.colorbar(scatter, ax=ax2, label="Total MB")
-    ax2.set_xlabel("Top-K Compression Ratio (%)")
-    ax2.set_ylabel("AUROC")
-    ax2.set_title("Detection Quality vs Compression Ratio")
-    for r, a, n in zip(ratios, auroc, names):
-        ax2.annotate(n, (r, a), textcoords="offset points", xytext=(5, 5), fontsize=8)
+    ax2.plot(
+        x,
+        auroc,
+        color=METHOD_COLORS["TopK-10%"],
+        marker="o",
+        markersize=4.6,
+        linewidth=1.5,
+    )
+    if "10%" in labels:
+        idx = labels.index("10%")
+        ax2.scatter(
+            x[idx],
+            auroc[idx],
+            s=65,
+            facecolor="white",
+            edgecolor=METHOD_COLORS["TopK-10%"],
+            linewidth=1.2,
+            zorder=4,
+        )
+        ax2.annotate(
+            "10%",
+            (x[idx], auroc[idx]),
+            xytext=(0, 10),
+            textcoords="offset points",
+            ha="center",
+            fontsize=8,
+        )
 
-    plt.tight_layout()
+    ax1.set_xticks(x)
+    ax1.set_xticklabels(labels)
+    ax2.set_xticks(x)
+    ax2.set_xticklabels(labels)
+    style_axis(ax1, xlabel="Top-k ratio", ylabel="Total communication (MB)")
+    style_axis(ax2, xlabel="Top-k ratio", ylabel="AUROC")
+    ax1.set_ylim(0, max(total_mb) * 1.16)
+    ax2.set_ylim(min(auroc) - 0.01, max(auroc) + 0.01)
+    add_panel_label(ax1, "A")
+    add_panel_label(ax2, "B")
+    fig.subplots_adjust(top=0.92, left=0.10, right=0.99, bottom=0.18, wspace=0.28)
     save(fig, "fig_communication_overhead.png")
 
-
-# ─────────────────────────── Figure 4: Robustness Comparison ─────────────────
 
 def plot_robustness_comparison(rob_results: dict):
     """AUROC of each aggregator under different attack fractions."""
     setup_style()
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13, 5))
+    fig, (ax1, ax2) = plt.subplots(
+        1, 2, figsize=(7.1, 3.2), gridspec_kw={"width_ratios": [1.12, 0.88]}
+    )
 
-    attack_fractions = sorted(list(list(rob_results.values())[0].keys()))
-    agg_names = list(rob_results.keys())
-
-    # Line plot: AUROC vs attack fraction
-    for agg in agg_names:
-        color = COLORS.get(agg, "gray")
-        aurocs = [rob_results[agg][af]["auroc"] for af in attack_fractions]
-        ax1.plot([af * 100 for af in attack_fractions], aurocs,
-                 marker="o", color=color, label=agg.upper())
-
-    ax1.set_xlabel("Fraction of Malicious Clients (%)")
-    ax1.set_ylabel("AUROC")
-    ax1.set_title("Robustness: AUROC vs Attack Fraction")
-    ax1.legend(loc="lower left")
-    ax1.set_ylim(0.4, 1.0)
-    ax1.axhline(y=0.5, color="red", linestyle=":", alpha=0.5, label="Random")
-
-    # Heatmap: AUROC values
+    agg_order = ["fedavg", "median", "trimmed_mean", "krum", "rfa"]
+    attack_fractions = [0.0, 0.1, 0.2, 0.3]
+    x = np.array([0, 10, 20, 30])
     matrix = []
-    for agg in agg_names:
-        row = [rob_results[agg][af]["auroc"] for af in attack_fractions]
-        matrix.append(row)
-    matrix = np.array(matrix)
+    handles = []
+    labels = []
 
-    im = ax2.imshow(matrix, aspect="auto", cmap="RdYlGn", vmin=0.4, vmax=1.0)
-    plt.colorbar(im, ax=ax2, label="AUROC")
-    ax2.set_xticks(range(len(attack_fractions)))
-    ax2.set_xticklabels([f"{int(af*100)}%" for af in attack_fractions])
-    ax2.set_yticks(range(len(agg_names)))
-    ax2.set_yticklabels([a.upper() for a in agg_names])
-    ax2.set_xlabel("Attack Fraction")
-    ax2.set_title("AUROC Heatmap (Aggregator vs Attack %)")
+    for agg in agg_order:
+        if agg not in rob_results:
+            continue
+        values = [rob_results[agg][str(frac)]["auroc"] for frac in attack_fractions]
+        matrix.append(values)
+        line = ax1.plot(
+            x,
+            values,
+            marker="o",
+            markersize=4.4,
+            linewidth=1.6,
+            color=METHOD_COLORS[agg],
+        )[0]
+        handles.append(line)
+        labels.append(agg.replace("_", " ").title())
 
-    for i in range(len(agg_names)):
-        for j in range(len(attack_fractions)):
-            ax2.text(j, i, f"{matrix[i, j]:.2f}", ha="center", va="center", fontsize=9, color="black")
+    ax1.axhline(0.5, color="#8C8C8C", linestyle=":", linewidth=0.9)
+    style_axis(ax1, xlabel="Byzantine clients (%)", ylabel="AUROC")
+    ax1.set_xticks(x)
+    ax1.set_ylim(0.45, 0.84)
+    add_panel_label(ax1, "A")
 
-    plt.tight_layout()
+    heatmap_data = np.array(matrix)
+    sns.heatmap(
+        heatmap_data,
+        annot=True,
+        fmt=".2f",
+        cmap="RdYlGn",
+        vmin=0.45,
+        vmax=0.82,
+        cbar_kws={"label": "AUROC"},
+        linewidths=0.6,
+        linecolor="white",
+        xticklabels=["0%", "10%", "20%", "30%"],
+        yticklabels=[
+            name.title().replace("_", " ") for name in agg_order if name in rob_results
+        ],
+        ax=ax2,
+        annot_kws={"size": 8},
+    )
+    ax2.set_xlabel("Byzantine clients (%)")
+    ax2.set_ylabel("")
+    ax2.tick_params(length=0)
+    add_panel_label(ax2, "B")
+
+    fig.legend(
+        handles,
+        labels,
+        loc="upper center",
+        bbox_to_anchor=(0.49, 1.03),
+        ncol=3,
+        frameon=False,
+        columnspacing=1.2,
+        handlelength=2.1,
+    )
+    fig.subplots_adjust(top=0.78, left=0.10, right=0.98, bottom=0.18, wspace=0.28)
     save(fig, "fig_robustness_comparison.png")
 
 
-# ─────────────────────────── Figure 5: Anomaly Detection Example ─────────────
-
 def plot_anomaly_detection(client_data: list, model, device: str = "cpu"):
-    """Visualize anomaly scores and detected anomalies on test data."""
+    """Visualize anomaly scores and detection outputs on test data."""
     from src.models import compute_anomaly_scores, get_threshold
+
     setup_style()
-
-    fig, axes = plt.subplots(3, 1, figsize=(13, 9))
+    fig, axes = plt.subplots(
+        3,
+        1,
+        figsize=(6.9, 5.4),
+        sharex=True,
+        gridspec_kw={"height_ratios": [1.0, 1.0, 0.65]},
+    )
     showcase_client = 0
-    cd = client_data[showcase_client]
+    client = client_data[showcase_client]
 
-    X_test = cd["X_test"]
-    y_test = cd["y_test"]
-    min_len = min(len(X_test), len(y_test))
-    X_test = X_test[:min_len]
+    x_test = client["X_test"]
+    y_test = client["y_test"]
+    min_len = min(len(x_test), len(y_test), 260)
+    x_test = x_test[:min_len]
     y_test = y_test[:min_len]
-
-    scores = compute_anomaly_scores(model, X_test, device=device)
-
-    # --- Raw signal
-    ax1 = axes[0]
     t = np.arange(min_len)
-    ax1.plot(t, X_test[:, 0, 0], color="#1565C0", alpha=0.8, linewidth=1.0, label="Sensor signal")
-    anom_mask = y_test == 1
-    ax1.scatter(t[anom_mask], X_test[:, 0, 0][anom_mask], color="#E53935", s=8, zorder=5, label="True anomaly")
-    ax1.set_ylabel("Sensor Value")
-    ax1.set_title(f"Client {showcase_client}: Raw Sensor Signal (Test Set)")
-    ax1.legend()
 
-    # --- Reconstruction error
-    ax2 = axes[1]
-    ax2.plot(t, scores, color="#6A1B9A", alpha=0.85, linewidth=1.0, label="Reconstruction Error")
+    scores = compute_anomaly_scores(model, x_test, device=device)
+    scores = scores[:min_len]
     threshold = get_threshold(scores, percentile=90)
-    ax2.axhline(threshold, color="#E53935", linestyle="--", label=f"Threshold (90th pct)")
-    ax2.fill_between(t, 0, scores, where=(scores > threshold), alpha=0.3, color="#E53935")
-    ax2.set_ylabel("Anomaly Score (MSE)")
-    ax2.set_title("LSTM-AE Reconstruction Error")
-    ax2.legend()
-
-    # --- Detection result
-    ax3 = axes[2]
     preds = (scores > threshold).astype(int)
+
     tp = (preds == 1) & (y_test == 1)
     fp = (preds == 1) & (y_test == 0)
     fn = (preds == 0) & (y_test == 1)
-    tn = (preds == 0) & (y_test == 0)
 
-    ax3.scatter(t[tn], np.zeros(tn.sum()), color="#90CAF9", s=4, label="TN")
-    ax3.scatter(t[tp], np.ones(tp.sum()), color="#43A047", s=10, label="TP", zorder=5)
-    ax3.scatter(t[fp], np.ones(fp.sum()), color="#FF7043", s=10, label="FP", zorder=5)
-    ax3.scatter(t[fn], np.zeros(fn.sum()), color="#E53935", s=10, label="FN", zorder=5)
-    ax3.set_yticks([0, 1])
-    ax3.set_yticklabels(["Normal", "Anomaly"])
-    ax3.set_xlabel("Time Step")
-    ax3.set_title("Detection Results (TP/FP/FN/TN)")
-    ax3.legend(loc="upper right", ncol=4)
+    axes[0].plot(t, x_test[:, 0, 0], color=DETECTION_COLORS["signal"], linewidth=1.0)
+    axes[0].scatter(
+        t[y_test == 1],
+        x_test[:, 0, 0][y_test == 1],
+        color=DETECTION_COLORS["anomaly"],
+        s=13,
+        zorder=4,
+    )
+    style_axis(axes[0], ylabel="Signal")
+    add_panel_label(axes[0], "A")
 
-    plt.tight_layout()
+    axes[1].plot(t, scores, color=DETECTION_COLORS["score"], linewidth=1.3)
+    axes[1].axhline(
+        threshold, color=DETECTION_COLORS["threshold"], linestyle="--", linewidth=1.0
+    )
+    axes[1].fill_between(
+        t, threshold, scores, where=scores > threshold, color="#E7C8EA", alpha=0.7
+    )
+    style_axis(axes[1], ylabel="Reconstruction\nerror")
+    add_panel_label(axes[1], "B")
+
+    axes[2].eventplot(
+        [np.where(tp)[0], np.where(fp)[0], np.where(fn)[0]],
+        colors=[DETECTION_COLORS["tp"], DETECTION_COLORS["fp"], DETECTION_COLORS["fn"]],
+        lineoffsets=[2, 1, 0],
+        linelengths=0.7,
+        linewidths=1.2,
+        orientation="horizontal",
+    )
+    axes[2].set_yticks([0, 1, 2])
+    axes[2].set_yticklabels(["FN", "FP", "TP"])
+    style_axis(axes[2], xlabel="Time step", ylabel="Outcome", ygrid=False)
+    axes[2].grid(False)
+    add_panel_label(axes[2], "C")
+
+    handles = [
+        plt.Line2D([0], [0], color=DETECTION_COLORS["signal"], lw=1.2),
+        plt.Line2D(
+            [0],
+            [0],
+            marker="o",
+            color="w",
+            markerfacecolor=DETECTION_COLORS["anomaly"],
+            markersize=5.5,
+        ),
+        plt.Line2D([0], [0], color=DETECTION_COLORS["score"], lw=1.2),
+        plt.Line2D(
+            [0], [0], color=DETECTION_COLORS["threshold"], lw=1.0, linestyle="--"
+        ),
+    ]
+    labels = ["Sensor signal", "True anomaly", "Reconstruction error", "Threshold"]
+    fig.legend(
+        handles,
+        labels,
+        loc="upper center",
+        bbox_to_anchor=(0.52, 1.01),
+        ncol=2,
+        frameon=False,
+    )
+    fig.subplots_adjust(top=0.84, left=0.10, right=0.99, bottom=0.10, hspace=0.18)
     save(fig, "fig_anomaly_detection.png")
 
-
-# ─────────────────────────── Figure 6: Ablation Study ────────────────────────
 
 def plot_ablation_study(ablation_results: dict):
     """Bar chart comparing ablation configurations."""
     setup_style()
-    fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+    fig, axes = plt.subplots(1, 3, figsize=(7.1, 3.2))
 
     names = list(ablation_results.keys())
-    auroc_vals = [ablation_results[n]["auroc"] for n in names]
-    f1_vals = [ablation_results[n]["f1"] for n in names]
-    mb_vals = [ablation_results[n]["total_mb"] for n in names]
+    short_names = ["Full", "No Comp", "No Robust", "No FedProx", "Baseline"]
+    auroc_vals = [ablation_results[name]["auroc"] for name in names]
+    f1_vals = [ablation_results[name]["f1"] for name in names]
+    mb_vals = [ablation_results[name]["total_mb"] for name in names]
+    x = np.arange(len(names))
 
-    palette = plt.cm.Set2(np.linspace(0, 1, len(names)))
+    palette = ["#54A24B", "#BDBDBD", "#E45756", "#C7C7C7", "#D4D4D4"]
 
-    def bar_plot(ax, vals, title, ylabel, fmt=".3f"):
-        bars = ax.bar(range(len(names)), vals, color=palette, edgecolor="k", linewidth=0.6)
-        ax.set_xticks(range(len(names)))
-        ax.set_xticklabels(names, rotation=35, ha="right", fontsize=9)
-        ax.set_ylabel(ylabel)
-        ax.set_title(title)
-        for bar, v in zip(bars, vals):
-            ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.002,
-                    f"{v:{fmt}}", ha="center", va="bottom", fontsize=9)
+    def bar_panel(ax, values, ylabel, ylim, fmt):
+        bars = ax.bar(
+            x, values, color=palette, edgecolor="#666666", linewidth=0.5, width=0.66
+        )
+        ax.set_xticks(x)
+        ax.set_xticklabels(short_names, rotation=0)
+        style_axis(ax, ylabel=ylabel)
+        ax.set_ylim(*ylim)
+        offset = (ylim[1] - ylim[0]) * 0.03
+        for bar, value in zip(bars, values):
+            ax.text(
+                bar.get_x() + bar.get_width() / 2,
+                value + offset,
+                format(value, fmt),
+                ha="center",
+                va="bottom",
+                fontsize=8,
+            )
 
-    bar_plot(axes[0], auroc_vals, "AUROC (higher = better)", "AUROC")
-    bar_plot(axes[1], f1_vals, "F1 Score (higher = better)", "F1")
-    bar_plot(axes[2], mb_vals, "Total Communication (lower = better)", "MB", fmt=".1f")
+    bar_panel(axes[0], auroc_vals, "AUROC", (0.40, 0.76), ".2f")
+    bar_panel(axes[1], f1_vals, "F1", (0.00, 0.33), ".2f")
+    bar_panel(axes[2], mb_vals, "Communication (MB)", (0.00, 16.5), ".1f")
 
-    plt.suptitle("Ablation Study: Contribution of Each FL Component", fontsize=14, y=1.02)
-    plt.tight_layout()
+    add_panel_label(axes[0], "A")
+    add_panel_label(axes[1], "B")
+    add_panel_label(axes[2], "C")
+    fig.subplots_adjust(top=0.93, left=0.08, right=0.99, bottom=0.22, wspace=0.28)
     save(fig, "fig_ablation_study.png")
 
 
-# ─────────────────────────── Figure 7: Architecture Diagram ──────────────────
-
 def plot_architecture_diagram():
-    """
-    System architecture diagram showing the FL pipeline.
-    Drawn programmatically using matplotlib patches and arrows.
-    """
+    """Integrated architecture figure showing the end-to-end pipeline."""
     setup_style()
-    fig, ax = plt.subplots(figsize=(14, 8))
-    ax.set_xlim(0, 14)
-    ax.set_ylim(0, 8)
+    fig, ax = plt.subplots(figsize=(13.5, 4.8))
+    ax.set_xlim(0, 15.2)
+    ax.set_ylim(0, 5.5)
     ax.axis("off")
-    ax.set_facecolor("white")
-    fig.patch.set_facecolor("white")
 
-    def box(ax, x, y, w, h, label, color="#BBDEFB", text_size=9, sublabel=""):
+    module_bands = [
+        (0.55, 3.45, "#EAF2FB", "M1  Anomaly detection model"),
+        (3.45, 7.10, "#EEF7EC", "M2  Communication-efficient FL"),
+        (7.10, 9.25, "#FFF5E8", "M3  Non-IID stabilization"),
+        (9.25, 14.70, "#F4EDF7", "M4  Byzantine-robust aggregation"),
+    ]
+    for x0, x1, color, label in module_bands:
+        ax.add_patch(
+            mpatches.FancyBboxPatch(
+                (x0, 1.2),
+                x1 - x0,
+                3.25,
+                boxstyle="round,pad=0.03,rounding_size=0.08",
+                linewidth=0,
+                facecolor=color,
+            )
+        )
+        ax.text(
+            (x0 + x1) / 2,
+            4.62,
+            label,
+            ha="center",
+            va="center",
+            fontsize=8.6,
+            fontweight="bold",
+        )
+
+    def node(
+        x, y, w, h, label, face="#FFFFFF", edge="#5A5A5A", fontsize=8.2, weight="normal"
+    ):
         rect = mpatches.FancyBboxPatch(
-            (x, y), w, h, boxstyle="round,pad=0.1",
-            linewidth=1.5, edgecolor="#37474F", facecolor=color
+            (x, y),
+            w,
+            h,
+            boxstyle="round,pad=0.03,rounding_size=0.05",
+            linewidth=0.9,
+            edgecolor=edge,
+            facecolor=face,
         )
         ax.add_patch(rect)
-        ax.text(x + w / 2, y + h / 2 + (0.15 if sublabel else 0),
-                label, ha="center", va="center", fontsize=text_size, fontweight="bold")
-        if sublabel:
-            ax.text(x + w / 2, y + h / 2 - 0.25, sublabel,
-                    ha="center", va="center", fontsize=7.5, color="#546E7A")
+        ax.text(
+            x + w / 2,
+            y + h / 2,
+            label,
+            ha="center",
+            va="center",
+            fontsize=fontsize,
+            fontweight=weight,
+        )
 
-    def arrow(ax, x1, y1, x2, y2, label="", color="#37474F"):
-        ax.annotate("", xy=(x2, y2), xytext=(x1, y1),
-                    arrowprops=dict(arrowstyle="->", color=color, lw=1.5))
+    def arrow(x1, y1, x2, y2, label=None):
+        ax.annotate(
+            "",
+            xy=(x2, y2),
+            xytext=(x1, y1),
+            arrowprops=dict(arrowstyle="->", lw=1.1, color="#4D4D4D"),
+        )
         if label:
-            mx, my = (x1 + x2) / 2, (y1 + y2) / 2
-            ax.text(mx, my + 0.15, label, ha="center", va="bottom", fontsize=8, color="#546E7A")
+            ax.text(
+                (x1 + x2) / 2,
+                y1 + 0.22,
+                label,
+                ha="center",
+                va="bottom",
+                fontsize=7.5,
+                color="#5C5C5C",
+            )
 
-    # --- Edge Clients (left side)
-    client_colors = ["#E3F2FD", "#E8F5E9", "#FFF8E1", "#FCE4EC", "#F3E5F5"]
-    client_labels = ["Client 0\n(Factory Line A)", "Client 1\n(SCADA Node)", "Client 2\n(Edge Gateway)",
-                     "Client 3\n(Sensor Array)", "Client 4\n(PLC Unit)"]
-    for i in range(5):
-        y_pos = 6.8 - i * 1.3
-        box(ax, 0.2, y_pos, 2.8, 0.9, client_labels[i], color=client_colors[i], text_size=8)
+    node(0.80, 2.25, 1.15, 1.05, "K edge\nclients", face="#FFFFFF", weight="bold")
+    node(2.10, 2.25, 1.25, 1.05, "Input IIoT\nwindows")
+    node(3.65, 2.25, 1.25, 1.05, "Windowing\nNormalize")
+    node(5.15, 2.25, 1.45, 1.05, "Local LSTM-AE\ntraining", face="#F8FBFE")
+    node(6.85, 2.25, 1.25, 1.05, "Top-k + error\nfeedback", face="#FFF6EA")
+    node(8.35, 2.25, 1.15, 1.05, "FedProx\nterm", face="#FFF1E1")
+    node(9.75, 2.25, 1.15, 1.05, "Compressed\nuplink")
+    node(11.15, 2.25, 1.60, 1.05, "RFA / Median /\nTrimmed Mean / Krum", face="#FAF6FC")
+    node(13.05, 2.25, 1.20, 1.05, "Global\nmodel")
+    node(14.45, 2.25, 0.55, 1.05, "", face="#FFFFFF", edge="#FFFFFF")
 
-    # --- Local Model box
-    box(ax, 3.5, 0.3, 2.5, 7.2, "", color="#E0F7FA")
-    ax.text(4.75, 6.9, "Local Processing", ha="center", va="center", fontsize=10, fontweight="bold", color="#00838F")
-    box(ax, 3.7, 5.6, 2.1, 0.8, "Windowing &\nNormalization", color="#B2EBF2", text_size=8)
-    box(ax, 3.7, 4.3, 2.1, 0.9, "LSTM-AE\nLocal Training", color="#80DEEA", text_size=8)
-    box(ax, 3.7, 3.1, 2.1, 0.8, "FedProx\nProximal Loss", color="#4DD0E1", text_size=8)
-    box(ax, 3.7, 2.0, 2.1, 0.7, "Top-K\nCompressor", color="#26C6DA", text_size=8)
-    box(ax, 3.7, 0.6, 2.1, 1.0, "Anomaly\nScore & Threshold", color="#00BCD4", text_size=8)
-
-    # --- Server (center)
-    box(ax, 6.8, 1.0, 3.0, 5.8, "", color="#FFF3E0")
-    ax.text(8.3, 6.5, "Federated Server", ha="center", va="center", fontsize=10, fontweight="bold", color="#E65100")
-    box(ax, 7.0, 5.0, 2.6, 0.9, "Client Selection\n(Partial Participation)", color="#FFE0B2", text_size=8)
-    box(ax, 7.0, 3.7, 2.6, 0.9, "Robust Aggregation\nRFA / Median / Krum", color="#FFCC80", text_size=8)
-    box(ax, 7.0, 2.5, 2.6, 0.9, "Byzantine Filter\n& Trust Score", color="#FFB74D", text_size=8)
-    box(ax, 7.0, 1.2, 2.6, 0.9, "Global Model θ\nBroadcast", color="#FF9800", text_size=8)
-
-    # --- Threat Model (right)
-    box(ax, 10.6, 4.5, 3.0, 2.0, "Adversarial\nClients", color="#FFEBEE", text_size=8,
-        sublabel="Model Poisoning\nLabel Flipping / On-Off")
-    box(ax, 10.6, 2.0, 3.0, 1.8, "Non-IID\nHeterogeneity", color="#F3E5F5", text_size=8,
-        sublabel="By-asset / Feature-shift\nTemporal Drift")
-    box(ax, 10.6, 0.3, 3.0, 1.3, "Resource\nConstraints", color="#E8F5E9", text_size=8,
-        sublabel="Bandwidth / CPU / Memory")
-
-    # --- Arrows ---
-    for i in range(5):
-        y_pos = 6.8 - i * 1.3 + 0.45
-        arrow(ax, 3.0, y_pos, 3.6, 5.0 if i == 0 else 4.3, color="#1565C0")
-    arrow(ax, 5.8, 6.0, 6.8, 6.0, label="Compressed\nUpdate ΔC(Δk)", color="#00838F")
-    arrow(ax, 5.8, 4.5, 6.8, 4.5, color="#00838F")
-    arrow(ax, 6.8, 1.6, 5.8, 1.6, label="Global θ", color="#E65100")
-    arrow(ax, 10.6, 5.5, 9.8, 4.2, color="#C62828")
-    arrow(ax, 10.6, 2.9, 9.8, 3.0, color="#7B1FA2")
-
-    ax.set_title(
-        "System Architecture: Communication-Efficient & Robust Federated Anomaly Detection for IIoT",
-        fontsize=12, fontweight="bold", pad=10
+    node(13.00, 0.65, 1.25, 0.88, "Local\nthreshold")
+    node(
+        14.40,
+        0.65,
+        0.65,
+        0.88,
+        "AUROC\nF1\nComm.",
+        face="#F7F7F7",
+        fontsize=7.8,
+        weight="bold",
     )
 
-    plt.tight_layout()
+    arrow(1.95, 2.78, 2.10, 2.78)
+    arrow(3.35, 2.78, 3.65, 2.78)
+    arrow(4.90, 2.78, 5.15, 2.78)
+    arrow(6.60, 2.78, 6.85, 2.78)
+    arrow(8.10, 2.78, 8.35, 2.78)
+    arrow(9.50, 2.78, 9.75, 2.78, label="client to server")
+    arrow(10.90, 2.78, 11.15, 2.78)
+    arrow(12.75, 2.78, 13.05, 2.78)
+    arrow(13.65, 2.25, 13.65, 1.53, label="broadcast")
+    arrow(14.25, 1.09, 14.40, 1.09)
+
+    node(8.15, 4.02, 1.55, 0.58, "non-IID local drift", face="#FFF5E8", fontsize=7.8)
+    node(11.10, 4.02, 1.65, 0.58, "Byzantine updates", face="#FBEAEC", fontsize=7.8)
+    node(6.25, 0.52, 1.70, 0.58, "bandwidth constraint", face="#EEF7EC", fontsize=7.8)
+    ax.annotate(
+        "",
+        xy=(8.75, 3.33),
+        xytext=(8.92, 4.02),
+        arrowprops=dict(arrowstyle="-|>", lw=0.9, color="#8C8C8C"),
+    )
+    ax.annotate(
+        "",
+        xy=(11.95, 3.33),
+        xytext=(11.95, 4.02),
+        arrowprops=dict(arrowstyle="-|>", lw=0.9, color="#8C8C8C"),
+    )
+    ax.annotate(
+        "",
+        xy=(7.10, 2.23),
+        xytext=(7.10, 1.10),
+        arrowprops=dict(arrowstyle="-|>", lw=0.9, color="#8C8C8C"),
+    )
+
     save(fig, "fig_architecture_diagram.png")
 
-
-# ─────────────────────────── Figure 8: On-Off Attack ─────────────────────────
 
 def plot_on_off_attack(on_off_results: dict):
     """Compare aggregator performance against persistent vs on-off attacks."""
     setup_style()
-    fig, ax = plt.subplots(figsize=(10, 5))
+    fig, ax = plt.subplots(figsize=(5.6, 3.1))
 
-    attack_types = ["model_poisoning", "on_off"]
-    attack_labels = {"model_poisoning": "Persistent Poisoning", "on_off": "On-Off Attack"}
-    agg_names = list(list(on_off_results.values())[0].keys())
-    x = np.arange(len(agg_names))
-    width = 0.35
+    agg_order = ["fedavg", "median", "rfa"]
+    labels = ["FedAvg", "Median", "RFA"]
+    x = np.arange(len(agg_order))
+    width = 0.34
 
-    bars1 = ax.bar(x - width / 2, [on_off_results["model_poisoning"][a]["auroc"] for a in agg_names],
-                   width, label=attack_labels["model_poisoning"], color="#E53935", alpha=0.85, edgecolor="k", linewidth=0.5)
-    bars2 = ax.bar(x + width / 2, [on_off_results["on_off"][a]["auroc"] for a in agg_names],
-                   width, label=attack_labels["on_off"], color="#FF6F00", alpha=0.85, edgecolor="k", linewidth=0.5)
+    persistent = [on_off_results["model_poisoning"][agg]["auroc"] for agg in agg_order]
+    on_off = [on_off_results["on_off"][agg]["auroc"] for agg in agg_order]
 
-    for bars in [bars1, bars2]:
+    bars1 = ax.bar(
+        x - width / 2,
+        persistent,
+        width,
+        color=ATTACK_COLORS["model_poisoning"],
+        edgecolor="#666666",
+        linewidth=0.5,
+        label="Persistent poisoning",
+    )
+    bars2 = ax.bar(
+        x + width / 2,
+        on_off,
+        width,
+        color=ATTACK_COLORS["on_off"],
+        edgecolor="#666666",
+        linewidth=0.5,
+        label="On-off attack",
+    )
+
+    for bars in (bars1, bars2):
         for bar in bars:
-            h = bar.get_height()
-            ax.text(bar.get_x() + bar.get_width() / 2, h + 0.005, f"{h:.2f}",
-                    ha="center", va="bottom", fontsize=9)
+            value = bar.get_height()
+            ax.text(
+                bar.get_x() + bar.get_width() / 2,
+                value + 0.012,
+                f"{value:.2f}",
+                ha="center",
+                va="bottom",
+                fontsize=8,
+            )
 
-    ax.set_xlabel("Aggregation Method")
-    ax.set_ylabel("AUROC")
-    ax.set_title("Defense Performance: Persistent vs On-Off Attack Strategy (20% Attackers)")
+    ax.axhline(0.5, color="#8C8C8C", linestyle=":", linewidth=0.9)
     ax.set_xticks(x)
-    ax.set_xticklabels([a.upper() for a in agg_names])
-    ax.legend()
-    ax.set_ylim(0.4, 1.05)
-    ax.axhline(y=0.5, color="gray", linestyle=":", alpha=0.5)
-
-    plt.tight_layout()
+    ax.set_xticklabels(labels)
+    style_axis(ax, xlabel="Aggregation method", ylabel="AUROC")
+    ax.set_ylim(0.45, 0.86)
+    add_panel_label(ax, "A")
+    ax.legend(loc="upper center", bbox_to_anchor=(0.52, 1.02), ncol=2, frameon=False)
+    fig.subplots_adjust(top=0.83, left=0.12, right=0.99, bottom=0.20)
     save(fig, "fig_on_off_attack.png")
 
-
-# ─────────────────────────── Generate All Figures ────────────────────────────
 
 def generate_all_figures(
     client_data,
@@ -439,14 +706,14 @@ def generate_all_figures(
     best_model,
     device: str = "cpu",
 ):
-    """Generate and save all figures to figures/ directory."""
+    """Generate and save all figure assets."""
     print("\n=== Generating Figures ===")
     plot_architecture_diagram()
     plot_dataset_overview(client_data)
     plot_fl_convergence(conv_results)
     plot_communication_overhead(comm_results)
-    plot_robustness_comparison(rob_results)
     plot_anomaly_detection(client_data, best_model, device=device)
-    plot_ablation_study(ablation_results)
+    plot_robustness_comparison(rob_results)
     plot_on_off_attack(on_off_results)
+    plot_ablation_study(ablation_results)
     print(f"\nAll figures saved to {SAVE_DIR}/")

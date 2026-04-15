@@ -264,10 +264,7 @@
 
   #figure(
     image("figures/fig_architecture_diagram.png", width: 100%),
-    caption: [System architecture of the proposed Communication-Efficient and Robust
-    Federated Anomaly Detection framework. Edge clients perform local LSTM-AE training
-    with FedProx regularisation and Top-$k$ compression before transmission;
-    the server filters Byzantine updates via RFA and broadcasts the updated global model.],
+    caption: [Integrated overview of the proposed federated anomaly detection pipeline for IIoT edge networks. Local clients process multivariate sensor windows, train an LSTM autoencoder with FedProx stabilisation, compress updates with Top-$k$ error-feedback, and transmit them to a server that performs Byzantine-robust aggregation before broadcasting the updated global model. The pipeline links the four method modules in a single end-to-end workflow from raw data to local inference and evaluation.],
   ) <fig-arch>
 
   == Module 1: LSTM Autoencoder for IIoT Anomaly Detection
@@ -394,9 +391,7 @@
 
   #figure(
     image("figures/fig_dataset_overview.png", width: 100%),
-    caption: [Synthetic IIoT dataset: the five edge clients exhibit distinct
-    frequencies, amplitudes, and noise levels (non-IID). Red dots mark injected
-    anomalies (spikes, drift, pattern shifts).],
+    caption: [Overview of the synthetic five-client IIoT dataset used in the federated experiments. The clients show different frequencies, amplitudes, and noise levels, illustrating the non-IID setting, while red markers indicate injected anomalies including spikes, drift segments, and pattern shifts.],
   ) <fig-dataset>
 
   Sliding windows of $W = 30$ steps with stride 1 are used; train/test split is 70%/30%,
@@ -432,10 +427,7 @@
 
   #figure(
     image("figures/fig_fl_convergence.png", width: 100%),
-    caption: [Left: Training loss convergence for FedAvg, FedProx, Top-$k$, and
-    FedProx+TopK over 60 rounds. Right: cumulative communication cost (MB).
-    FedProx achieves smoother convergence under non-IID; Top-$k$ reduces
-    communication by approximately 10x with negligible loss degradation.],
+    caption: [Training loss and cumulative communication over federated rounds for FedAvg, FedProx, Top-$k$, and FedProx + Top-$k$. FedProx yields smoother convergence under non-IID data, while Top-$k$ strongly reduces communication; the combined configuration preserves convergence behaviour with much lower uplink cost.],
   ) <fig-convergence>
 
   == Communication Overhead vs. Compression Ratio
@@ -448,9 +440,7 @@
 
   #figure(
     image("figures/fig_communication_overhead.png", width: 100%),
-    caption: [Communication efficiency: total uplink bytes (left bars) and AUROC
-    (right scatter) for compression ratios from 100% (no compression) to 1%.
-    The knee point at 10% compression offers the best quality-cost trade-off.],
+    caption: [Communication cost and detection quality across Top-$k$ compression ratios from 100% to 1%. Uplink volume decreases nearly linearly with stronger compression, while AUROC changes modestly; the 10% setting provides a compact trade-off between communication reduction and detection performance.],
   ) <fig-comm>
 
   == Anomaly Detection Quality
@@ -461,9 +451,7 @@
 
   #figure(
     image("figures/fig_anomaly_detection.png", width: 100%),
-    caption: [Anomaly detection on Client 0 test data. Top: raw sensor signal
-    with true anomaly labels (red). Middle: reconstruction error (purple) with
-    detection threshold (dashed red). Bottom: TP/FP/FN/TN classification outcomes.],
+    caption: [Representative anomaly detection output for Client 0. The top panel shows the sensor signal and true anomalies, the middle panel shows reconstruction error with the decision threshold, and the bottom panel summarises detection outcomes. Elevated reconstruction error aligns with anomalous intervals, with relatively few false detections in normal regions.],
   ) <fig-ad>
 
   == Robustness Under Byzantine Attacks
@@ -478,10 +466,7 @@
 
   #figure(
     image("figures/fig_robustness_comparison.png", width: 100%),
-    caption: [Robustness comparison: AUROC vs. fraction of Byzantine clients
-    (model poisoning). Left: line plots per aggregator. Right: AUROC heatmap.
-    RFA and median maintain significantly higher robustness than FedAvg at 20--30%
-    attack fraction.],
+    caption: [Robustness of aggregation methods under increasing fractions of Byzantine clients. The line plot and heatmap report AUROC for FedAvg, median, trimmed mean, Krum, and RFA across attack fractions from 0% to 30%. FedAvg degrades sharply at higher attack rates, whereas median and RFA remain substantially more stable.],
   ) <fig-rob>
 
   == On-Off Attack Evasion
@@ -494,9 +479,7 @@
 
   #figure(
     image("figures/fig_on_off_attack.png", width: 100%),
-    caption: [Defence performance against persistent model poisoning vs.~on-off
-    evasion attack strategy (20% adversarial clients). RFA shows the strongest
-    robustness against both attack types.],
+    caption: [AUROC under persistent model poisoning and on-off evasion attacks with 20% adversarial clients. Median and RFA remain clearly stronger than FedAvg under both attack patterns, while on-off behaviour changes performance only modestly relative to persistent poisoning in this experiment.],
   ) <fig-onoff>
 
   == Ablation Study
@@ -509,9 +492,7 @@
 
   #figure(
     image("figures/fig_ablation_study.png", width: 100%),
-    caption: [Ablation study: AUROC, F1, and total communication (MB) for five
-    system configurations. The full system (FedProx + Top-10% + RFA) achieves
-    the highest AUROC and F1 while minimising communication cost.],
+    caption: [Ablation analysis of the proposed system under 20% model-poisoning attackers. AUROC, F1, and total communication are shown for the full method and four reduced variants. Removing robust aggregation causes the strongest performance drop, whereas removing compression mainly increases communication cost.],
   ) <fig-ablation>
 
   #figure(
