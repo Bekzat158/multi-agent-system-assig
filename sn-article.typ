@@ -1,48 +1,38 @@
 // ============================================================
-// MethodsX-oriented manuscript revision
+// SoftwareX-style manuscript revision in Typst
 // ============================================================
 
 #set document(
-  title: "A reproducible federated anomaly detection pipeline for resource-constrained IIoT clients under non-IID and Byzantine conditions",
+  title: "FedGuard-IIoT: A reproducible software pipeline for communication-aware and Byzantine-robust federated anomaly detection in industrial IoT",
   author: "Sundetkhan Bekzat, Baibolat Bekarys",
   date: datetime.today(),
 )
 
 #set page(
   paper: "a4",
-  margin: (top: 2.4cm, bottom: 2.2cm, left: 2.3cm, right: 2.3cm),
+  margin: (top: 2.3cm, bottom: 2.1cm, left: 2.2cm, right: 2.2cm),
   numbering: "1",
   number-align: center,
 )
 
 #set text(
   font: "New Computer Modern",
-  size: 10.2pt,
+  size: 10pt,
   lang: "en",
 )
 
 #set par(
   justify: true,
   leading: 0.68em,
-  spacing: 0.78em,
+  spacing: 0.76em,
 )
 
 #set heading(numbering: "1.1")
-#set math.equation(numbering: "(1)")
 
 #show figure.caption: it => [
   #set text(size: 8.8pt)
   *#it.supplement #it.counter.display(it.numbering)*: #it.body
 ]
-
-#let abstract-block(body) = block(
-  width: 100%,
-  inset: (x: 1.2em, y: 0.9em),
-  fill: rgb("#F7F7F7"),
-  stroke: (left: 2.2pt + rgb("#4C78A8")),
-  radius: 3pt,
-  body,
-)
 
 #let keyword-list(..kws) = [
   #set text(size: 9.1pt)
@@ -56,294 +46,213 @@
 ]
 
 #align(center)[
-  #block(width: 92%)[
-    #set text(size: 15.6pt, weight: "bold")
-    A reproducible federated anomaly detection pipeline for resource-constrained IIoT clients under non-IID and Byzantine conditions
+  #block(width: 95%)[
+    #set text(size: 15.2pt, weight: "bold")
+    FedGuard-IIoT: A reproducible software pipeline for communication-aware and Byzantine-robust federated anomaly detection in industrial IoT
   ]
-  #v(0.65em)
-  #set text(size: 10.7pt)
+  #v(0.55em)
+  #set text(size: 10.6pt)
   Sundetkhan Bekzat, Baibolat Bekarys
-  #line(length: 62%, stroke: 0.45pt + gray)
 ]
 
 #v(0.65em)
 
-#abstract-block[
-  #set text(size: 9.2pt)
-  *Abstract.* Federated anomaly detection is attractive for industrial Internet of Things deployments because raw sensor streams remain on the device, but the resulting training process must operate under three constraints at once: limited uplink capacity, non-IID client data, and the possibility of poisoned updates. This article describes a reproducible pipeline that combines a local LSTM autoencoder, Top-$k$ error-feedback compression, FedProx stabilisation, and Byzantine-robust server aggregation in one round-level workflow. The implementation couples local reconstruction-based scoring with compressed transmission, robust aggregation, global model broadcast, and client-side thresholding. Validation is carried out on a five-client synthetic IIoT benchmark with heterogeneous periodicities, amplitudes, noise levels, and injected anomalies. The pipeline reduces communication from 14.92 MB to 1.49 MB at the 10% compression setting while preserving similar AUROC to the uncompressed communication study, and it remains markedly more stable than FedAvg when malicious clients are introduced. The method is intended as a compact reference implementation that other researchers can reproduce, adapt, and extend when studying federated anomaly detection for constrained industrial edge settings.
-]
+*Abstract*
+
+FedGuard-IIoT is an open-source software pipeline for reproducible federated anomaly detection under industrial edge conditions where bandwidth is limited, client data are heterogeneous, and some participants may transmit poisoned updates. The software integrates four components in one executable workflow: synthetic multi-client data generation, local LSTM autoencoder training, communication-aware federated optimization with Top-$k$ error-feedback compression and FedProx regularization, and server-side robust aggregation with coordinate-wise median, trimmed mean, Krum, and robust federated aggregation. The repository provides a single entry point for running the benchmark, saving structured results, and regenerating publication figures. The current implementation uses Python and PyTorch, stores experiment outputs in JSON, and generates the benchmark procedurally from fixed seeds. Illustrative runs on a five-client synthetic IIoT dataset show that the 10% compression setting reduces communication from 14.92 MB to 1.49 MB in the communication sweep while maintaining similar AUROC to full transmission, and that robust aggregation remains more stable than vanilla FedAvg under increasing fractions of malicious clients. The contribution of the article is therefore not a new anomaly score or a new federated optimizer in isolation. It is a compact software artifact that exposes the interaction among communication reduction, non-IID stabilization, and Byzantine robustness in a form that can be reproduced, inspected, and extended.
 
 #v(0.45em)
 #keyword-list(
   "federated learning",
   "anomaly detection",
   "industrial IoT",
-  "non-IID learning",
   "Byzantine robustness",
-  "gradient compression",
+  "reproducible software",
+  "PyTorch",
 )
 
-#v(0.75em)
-#line(length: 100%, stroke: 0.45pt + gray)
+#v(0.55em)
 
-= Introduction
+#figure(
+  kind: table,
+  caption: [Code metadata.],
+)[
+  #set text(size: 8.55pt)
+  #table(
+    columns: (0.65fr, 2.35fr),
+    align: (left, left),
+    stroke: 0.35pt,
+    inset: 4pt,
+    table.header([*Code metadata description*], [*Please fill in this column*]),
+    [C1 Current code version], [0.1.0 (from `pyproject.toml`)],
+    [C2 Permanent link to code/repository used for this code version], [Repository URL: `https://github.com/Bekzat158/multi-agent-system-assig`],
+    [C3 Permanent link to reproducible capsule or archived release], [Requires author completion. No archived release, DOI, or reproducible capsule was found in the repository.],
+    [C4 Legal code license], [Requires author completion. No top-level `LICENSE` file was found in the repository.],
+    [C5 Code versioning system used], [Git],
+    [C6 Software code languages, tools, and services used], [Python 3.12, PyTorch, NumPy, scikit-learn, matplotlib, seaborn, SciPy, pandas, `uv`, Typst],
+    [C7 Compilation requirements, operating environments, and dependencies], [Python >= 3.12; dependencies declared in `pyproject.toml`; manuscript builds with a local Typst installation via `typst compile`; experiments select CUDA when available and otherwise run on CPU.],
+    [C8 Link to developer documentation/manual], [`README.md` in the repository. External documentation link requires author completion if available.],
+    [C9 Support email for questions], [Requires author completion.],
+  )
+] <tab-metadata>
 
-Industrial edge systems increasingly place analytics close to sensors, controllers, and gateways because continuous transfer of multivariate process data is often impractical. In anomaly detection, this architectural shift creates a familiar tension. Local models reduce data movement and may protect sensitive operational traces, yet isolated training wastes information that is distributed across many devices. Federated learning addresses this tension by exchanging model updates instead of raw data, but standard federated optimisation is poorly matched to realistic industrial conditions. The communication budget is tight, client distributions differ across assets and operating regimes, and a compromised participant can poison the global model.
+#v(0.55em)
 
-The present work addresses these constraints as one implementation problem rather than as three separate add-ons. The method integrates a reconstruction-based local anomaly detector with compressed federated communication, non-IID stabilisation, and Byzantine-robust aggregation. The intent is methodological. The article does not propose a new anomaly score or a new robust estimator in isolation. Instead, it documents how these components can be assembled into a single reproducible training and inference pipeline for resource-constrained IIoT clients.
+= Motivation and significance
 
-This positioning is important for a MethodsX article. What is customised here is the operational coupling of four modules that are often discussed independently: the local anomaly detection model, the communication-efficient federated protocol, the non-IID stabilisation mechanism, and the robust server-side defence. The article therefore focuses on implementation details, interfaces between modules, and the trade-offs that arise when the full system is exercised under heterogeneous and adversarial conditions.
+Federated anomaly detection is a natural fit for industrial Internet of Things deployments because raw sensor streams often cannot be moved continuously from gateways, controllers, and edge devices to a central site. In practice, however, a usable federated pipeline must satisfy three constraints at the same time. Communication budgets are limited, local operating regimes differ across assets, and the global model can be degraded by poisoned client updates. Many papers address one of these constraints at a time, but fewer software artifacts expose them together in a reproducible workflow that can be run, modified, and audited by other researchers.
 
-= Method Positioning
+FedGuard-IIoT addresses that gap as a software integration problem. The repository does not introduce a new anomaly score, a new compression rule, or a new robust estimator in isolation. Instead, it assembles an LSTM autoencoder, Top-$k$ error-feedback compression, FedProx stabilization, and robust server aggregation into one round-based executable pipeline with stored configurations, generated figures, and serialized results. This framing is important for SoftwareX. The central contribution is the open repository and the way it makes interaction effects visible under one workload.
 
-Federated learning for edge analytics remains anchored by the communication argument introduced by FedAvg [1], but later work makes clear that communication reduction alone is not enough once data heterogeneity and adversarial behaviour are taken seriously. FedProx [2], SCAFFOLD [4], Ditto [5], and pFedMe [6] all target instability induced by client drift, while FedPAQ [3] and sparsification methods [19] reduce message size or synchronisation frequency. In parallel, Byzantine-robust aggregation has produced a family of defences including Krum [7], trimmed mean and coordinate-wise median [9], Bulyan [8], RFA [10], and trust-based approaches such as FLTrust [11].
+The software is useful in two settings. First, it provides a compact reference implementation for researchers studying communication-aware or adversarial federated anomaly detection in synthetic industrial environments. Second, it offers a testbed for extending one module at a time while keeping the rest of the workflow fixed, which is difficult when compression, heterogeneity handling, and robustness are evaluated in separate codebases.
 
-For anomaly detection, reconstruction-based sequence models remain attractive because they map naturally onto unsupervised industrial monitoring. LSTM autoencoders and related architectures continue to be used in multivariate time-series settings where labelled attack data are scarce [15, 18, 20]. The gap addressed in this article is therefore not the absence of candidate components. It lies in the lack of a compact, reproducible workflow that shows how these components interact when a practitioner must train an anomaly detector under bandwidth limits, non-IID clients, and poisoned updates at the same time.
+The repository also fills a practical reproducibility gap. The benchmark data are generated procedurally from fixed seeds, the main script reruns the full pipeline from data creation to figure export, and the results are written to a machine-readable JSON file. That makes the software more useful than a narrative methods description alone, even though the present benchmark remains synthetic and modest in scale.
 
-= Problem Setup
+= Software description
 
-We consider a federation of $K$ edge clients $cal(K) = {1, dots, K}$. Client $k$ stores a local multivariate time-series dataset $D_k$ with $n_k$ samples generated from a client-specific distribution $cal(P)_k$. The global objective is
+== Overview
 
-$
-  min_(theta) F(theta) = sum_(k=1)^K p_k F_k(theta), quad
-  F_k(theta) = 1/n_k sum_(i=1)^(n_k) ell(bold(x)_i^((k)), theta),
-$
+The repository is organized around one executable workflow in `run_experiments.py`. A typical run proceeds through six stages: dataset generation, baseline local pretraining, federated experiment execution, training of a representative final model for visualization, result serialization, and figure generation. The source tree is separated into `src/data_gen.py` for synthetic data construction, `src/models.py` for anomaly detection models and scoring utilities, `src/fl_engine.py` for client training and aggregation, `src/attacks.py` for adversarial update manipulation, `src/experiments.py` for experiment orchestration, and `src/visualization.py` for article figures.
 
-where $p_k = n_k / sum_j n_j$. The non-IID setting is expressed by $cal(P)_k != cal(P)_j$ for at least some client pairs. In practical terms, different industrial assets produce distinct frequencies, amplitudes, noise levels, and anomaly manifestations. A server coordinates training rounds, but raw windows are never uploaded.
-
-The adversarial model assumes that a fraction $alpha$ of selected clients may transmit manipulated updates. The experiments cover model poisoning and on-off behaviour, where malicious clients alternate between benign and harmful rounds in an attempt to evade simple defences. The methodological objective is therefore to produce a training loop that is communication-aware, more stable under heterogeneous local objectives, and less sensitive to corrupted client updates.
-
-= Integrated Method
-
-The proposed system is executed as one repeated workflow. Each client converts its local multivariate stream into sliding windows, trains an LSTM autoencoder for several local epochs, regularises the local objective with a FedProx term, compresses the resulting parameter update through Top-$k$ error-feedback sparsification, and transmits the compressed update to the server. The server aggregates incoming updates with a robust rule, updates the global model, and broadcasts the revised parameters back to clients. Each client then applies a local threshold to reconstruction errors for inference. The complete flow is summarized in @fig-arch and in @tab-modules.
+The core workflow is shown in @fig-arch. Each client receives its own multivariate time-series windows, performs local training on an LSTM autoencoder, and returns a model update rather than raw data. If compression is enabled, the update is sparsified with Top-$k$ selection and corrected with error feedback. The server aggregates client updates with either vanilla averaging or a robust rule, updates the global model, and broadcasts new parameters for the next round. Evaluation uses reconstruction-based anomaly scores and stores summary metrics together with communication traces.
 
 #figure(
   image("figures/fig_architecture_diagram.png", width: 100%),
-  caption: [Integrated overview of the proposed federated anomaly detection pipeline for IIoT edge networks. Local clients process multivariate sensor windows, train an LSTM autoencoder with FedProx stabilisation, compress updates with Top-$k$ error-feedback, and transmit them to a server that performs Byzantine-robust aggregation before broadcasting the updated global model. The pipeline links the four method modules in a single end-to-end workflow from raw data to local inference and evaluation.],
+  caption: [Integrated workflow of FedGuard-IIoT. Client windows are used for local LSTM autoencoder training, optional FedProx regularization and Top-$k$ error-feedback compression are applied before upload, and the server aggregates updates with a selected rule before broadcasting the revised global model.],
 ) <fig-arch>
+
+== Core modules and integrated workflow
 
 #figure(
   kind: table,
-  caption: [Synthesis of the four modules used in the integrated pipeline.],
+  caption: [Core software modules in the integrated workflow.],
 )[
-  #set text(size: 8.6pt)
+  #set text(size: 8.55pt)
   #table(
-    columns: (1.1fr, 1.6fr, 1.9fr, 1.5fr),
+    columns: (1.05fr, 1.55fr, 1.95fr, 1.45fr),
     align: (left, left, left, left),
     stroke: 0.35pt,
     inset: 4pt,
-    table.header(
-      [*Module*], [*Role in the pipeline*], [*Implementation in this article*], [*Expected effect*],
-    ),
-    [M1: Local detector], [Construct sample-level anomaly scores from local windows], [Single-layer LSTM autoencoder with reconstruction loss and client-side percentile threshold], [Compact unsupervised detector that remains deployable on edge hardware],
-    [M2: Communication-efficient FL], [Reduce uplink cost during federated training], [Top-$k$ sparsification with error-feedback, partial participation, and multi-epoch local updates], [Lower communication without transmitting full updates each round],
-    [M3: Non-IID stabilisation], [Limit client drift under heterogeneous local distributions], [FedProx proximal regularisation plus local thresholding at inference time], [Smoother optimisation and client-specific decision boundaries],
-    [M4: Byzantine defence], [Reduce the impact of corrupted local updates], [RFA as the main robust aggregator, with median, trimmed mean, and Krum as comparison baselines], [Greater resistance to model poisoning than vanilla averaging],
+    table.header([*Module*], [*Purpose*], [*Implementation in repository*], [*Observable output*]),
+    [Local anomaly detector], [Learn reconstruction-based anomaly scores from client windows], [`src/models.py`: single-layer LSTM autoencoder; score from per-window reconstruction error], [Scores used for AUROC, F1, and example anomaly plots],
+    [Communication-efficient federated training], [Reduce uplink cost during training], [`src/fl_engine.py`: Top-$k$ sparsification with per-client residuals and communication tracking], [Per-round and cumulative transmitted bytes],
+    [Non-IID stabilization], [Reduce drift between local and global objectives], [`src/fl_engine.py`: FedProx local objective with configurable `mu`], [Smoother training trajectories in convergence studies],
+    [Byzantine-robust aggregation], [Reduce sensitivity to corrupted updates], [`src/fl_engine.py`: coordinate-wise median, trimmed mean, Krum, and RFA], [Robustness curves under increasing attack fractions],
   )
 ] <tab-modules>
 
-== Local anomaly detection model
+The local model is intentionally compact. The stored experiment configuration uses a six-channel input, window size 30, hidden size 48, latent size 12, and one LSTM layer. This compactness matters because the software is intended to make communication and aggregation effects visible without hiding them behind a very large model.
 
-The base detector is an LSTM autoencoder that operates on sliding windows $bold(X) in bb(R)^(W times F)$, where $W$ is window length and $F$ is the number of sensor channels. The encoder maps the input window to a latent representation and the decoder reconstructs the original sequence,
+The non-IID and robustness modules are implemented as part of the same round logic rather than as separate scripts. `federated_training` selects participating clients, runs local training with either FedAvg or FedProx, applies attack logic where requested, optionally compresses updates, aggregates them on the server, and records round-level communication. This integrated design is the main software contribution, because it exposes how the four components interact under one execution path.
 
-$
-  bold(z) = op("Encoder")_theta(bold(X)) in bb(R)^L, quad
-  hat(bold(X)) = op("Decoder")_phi(bold(z)) in bb(R)^(W times F).
-$
+The repository also includes additional code that is not central to the reported SoftwareX workflow, such as a lightweight `DeepSVDD` class and an `FLTrust`-style aggregator helper. These are not used in the reported experiments and are therefore not claimed as validated components of the present article.
 
-Training minimises the mean squared reconstruction error,
+== Software architecture and implementation
 
-$
-  ell(bold(X), theta, phi) = 1/(W F) lr(|| bold(X) - hat(bold(X)) ||)_F^2.
-$
+The data generator constructs a five-client synthetic benchmark in which clients differ by base frequency, amplitude, and noise level. Each client contributes 4000 samples over six channels. Normal signals are built from sinusoidal components and harmonics with additive noise and per-feature offsets. Three anomaly types are injected: spikes, drift segments, and pattern shifts. The generator writes train, test, and label arrays to `data/` and uses fixed seeds to make the benchmark deterministic across reruns.
 
-At inference, the anomaly score is the reconstruction loss itself. A client flags a window as anomalous when the score exceeds a percentile threshold estimated from local training data. This design preserves a shared representation across the federation while allowing decision thresholds to remain client-specific, which is useful when baseline operating ranges differ across assets.
+The training engine is implemented in plain PyTorch. `local_train_fedavg` and `local_train_fedprox` share the same reconstruction objective, while FedProx adds a proximal term with coefficient `mu` to restrain drift from the broadcast model. The compression layer is implemented through `TopKCompressor`, which keeps the largest-magnitude coordinates and stores the removed residual per client for reinjection in later rounds. Communication is tracked analytically from the number of active parameters and the configured bit width.
 
-The network is intentionally compact. The encoder uses one LSTM layer with hidden size $H = 48$, followed by projection to latent size $L = 16$ in the manuscript formulation. The implementation configuration stored with the experiments uses latent size 12, as recorded in the saved run configuration, and the code follows that setting for reproducibility. The decoder repeats the latent vector over the input horizon and reconstructs the full multivariate window. The resulting model remains small enough to illustrate the communication effects of federated training without overwhelming them with model size alone.
+The server-side aggregation layer exposes both baseline and robust rules. FedAvg uses weighted averaging by local sample count. Coordinate-wise median and trimmed mean operate per parameter coordinate, Krum performs distance-based neighbor selection, and robust federated aggregation approximates the geometric median through Weiszfeld-style iterations. This makes the repository useful as a comparative testbed rather than a single fixed method implementation.
 
-== Communication-efficient federated update
+Evaluation is also implemented in code rather than described abstractly. `src/experiments.py` computes AUROC, F1, and AUPR from reconstruction scores and writes the outputs to `results/experiment_results.json`. The current evaluation script reports pooled metrics using a global 90th-percentile threshold over aggregated scores for comparability across configurations. The software also includes threshold utilities that support percentile-based thresholding at the client level for local inspection and visualization. The article reports the implementation this way to match the code as stored.
 
-After $E$ local epochs, client $k$ computes an update relative to the current global model,
+== Dependencies, operating environment, and reproducibility notes
 
-$
-  Delta_k^t = theta_k^t - theta^t_"global".
-$
+The project declares its dependencies in `pyproject.toml` and uses `uv` for environment management. The main runtime dependencies are PyTorch, NumPy, scikit-learn, matplotlib, seaborn, pandas, SciPy, and tqdm. The article source is written in Typst and can be compiled with the bundled `typst` binary.
 
-To reduce message size, the client applies Top-$k$ sparsification with error feedback,
+The main entry point for reproducing the paper is:
 
-$
-  Delta_k^t + e_k^t arrow.r C_k(Delta_k^t + e_k^t, kappa), quad
-  e_k^(t+1) = (Delta_k^t + e_k^t) - C_k(Delta_k^t + e_k^t, kappa),
-$
+```bash
+uv sync
+uv run python run_experiments.py
+typst compile sn-article.typ sn-article.pdf
+```
 
-where $C_k(Delta, kappa)$ denotes the compression operator that retains the fraction $kappa$ of components with the largest absolute magnitude. The residual $e_k^t$ accumulates the information removed in previous rounds and re-injects it later, reducing the bias that would otherwise be introduced by repeated sparsification. The experiments sweep $kappa in {1\%, 5\%, 10\%, 20\%, 50\%, 100\%}$ and use 10% as the default operating point for the integrated pipeline.
+The experiment script automatically selects CUDA when available and otherwise falls back to CPU. Fixed seeds are used in dataset generation and federated client sampling. The output artifacts are stored in `data/`, `results/`, and `figures/`. Because the benchmark is synthetic, there is no external data acquisition step.
 
-Only a subset of clients participates in each round. In the implementation, the server samples $C = 0.6$ of the client pool per round and each selected client performs $E = 3$ local epochs before transmission. This choice follows the logic of communication-efficient federated learning: fewer synchronisation events and smaller updates both reduce total traffic. The article treats this communication module as part of the complete anomaly detection workflow rather than as an isolated compression experiment.
+Some SoftwareX reproducibility requirements are not yet fully satisfied by the present repository state. No top-level software license was found, no archived release or DOI was found, and no external documentation site beyond `README.md` was identified. These are repository-completion tasks rather than manuscript claims, and they should be addressed before submission.
 
-== Non-IID stabilisation and local decision adaptation
+= Illustrative examples
 
-Under heterogeneous client distributions, local optimisation may drift away from a globally useful parameter region. To reduce this effect, local training includes the FedProx objective,
+== Example workflow execution
 
-$
-  min_(theta_k) lr({ F_k(theta_k) + mu/2 lr(|| theta_k - theta^t_"global" ||)^2 }),
-$ <eq-fedprox>
+The first illustrative use of the software is the end-to-end federated experiment workflow itself. Running `run_experiments.py` generates the five-client synthetic dataset, trains the baseline local model, executes convergence, communication, robustness, ablation, and on-off attack studies, stores structured outputs in JSON, and redraws the figure set. This design makes the repository suitable as a reusable experiment harness rather than a collection of disconnected notebooks.
 
-with proximal coefficient $mu = 0.01$. The proximal term discourages large departures from the broadcast model, which is especially relevant when some clients observe extreme amplitudes or noisier operating conditions. In this pipeline, FedProx interacts directly with the other modules: it helps stabilise the update that will later be sparsified and robustly aggregated, and it reduces the chance that heterogeneous local steps are mistaken for adversarial behaviour.
-
-Inference retains a local component even though training is federated. Each client sets its own threshold on reconstruction error using a percentile of local training scores. This choice is pragmatic. It keeps the representation shared, but avoids forcing a single global threshold onto devices that operate in different normal regimes.
-
-== Byzantine-robust server aggregation
-
-Given the set of compressed updates $brace.l hat(Delta)_k^t brace.r_(k in cal(S)_t)$ received from the selected client set $cal(S)_t$, the server updates the global model with a robust aggregation rule. The main implementation uses robust federated aggregation (RFA), which approximates the geometric median through Weiszfeld iterations,
-
-$
-  Delta^(t+1) = sum_k w_k hat(Delta)_k^t, quad
-  w_k = 1 / max(lr(|| hat(Delta)_k^t - Delta^((i)) ||), epsilon),
-$
-
-initialised from the arithmetic mean and iterated five times. The appeal of RFA in this setting is that it can damp the influence of outlying updates while remaining compatible with compressed transmission.
-
-The evaluation also includes coordinate-wise median, trimmed mean, and Krum. These baselines are useful because they respond differently to heterogeneity and poisoning. Median operates coordinate-wise and often handles dispersed outliers well. Trimmed mean is less aggressive, which can be advantageous when honest updates are not too widely spread. Krum relies on distance-based neighbour selection and can be brittle when honest updates are already dispersed by non-IID data. Presenting these methods within the same pipeline makes the design choices easier to compare under one workload.
-
-= Experimental Setup
-
-The synthetic benchmark is designed to expose the method to realistic heterogeneity while remaining fully reproducible. Five clients are generated, each representing a distinct industrial node with client-specific frequency, amplitude, and noise parameters. For feature $f$ at client $k$, the signal is generated as
-
-$
-  x_f^((k))(t) = A_k (sin(2 pi f_k t + phi_f) + h_k sin(4 pi f_k t + phi_f)) + epsilon_f^((k))(t) + b_f^((k)),
-$
-
-where $f_k = 0.01 + 0.008k$, $A_k = 1 + 0.4k$, $epsilon_f^((k))(t) tilde cal(N)(0, sigma_k^2)$, and $b_f^((k))$ is a feature-specific offset. Each client contributes 4000 samples over six channels. The dataset is not intended as a replacement for established industrial control system benchmarks. Its purpose is different: it provides a transparent benchmark in which the sources of heterogeneity and anomaly injection are known and controllable.
-
-Anomalies are injected at an approximate overall rate of 6%. The benchmark mixes point spikes, drift segments, and pattern shifts so that the anomaly detector is not evaluated on a single failure mode. Train and test partitions follow a 70/30 split. Training remains unsupervised because only windows ending in normal states are retained for local model fitting, while the test partition keeps anomalous windows.
-
-#figure(
-  image("figures/fig_dataset_overview.png", width: 100%),
-  caption: [Overview of the synthetic five-client IIoT dataset used in the federated experiments. The clients show different frequencies, amplitudes, and noise levels, illustrating the non-IID setting, while red markers indicate injected anomalies including spikes, drift segments, and pattern shifts.],
-) <fig-dataset>
-
-The implementation uses PyTorch 2.11, Adam with learning rate $10^(-3)$, batch size 64, local epoch count $E = 3$, and 40 to 60 communication rounds depending on the experiment. The stored configuration records a latent size of 12 for the experimental run, whereas the method description above retains the 16-dimensional formulation used in the conceptual design. This discrepancy is reported explicitly here because reproducibility is more important than cosmetic consistency. All random seeds are fixed to 42.
-
-The attack experiments vary the fraction of malicious clients over $alpha in {0, 0.1, 0.2, 0.3}$. Model poisoning is implemented by transmitting harmful updates, and the on-off setting alternates malicious and benign behaviour across rounds. Evaluation reports AUROC, F1, and communication volume in megabytes computed from the transmitted update size.
-
-= Results and Interpretation
-
-== Convergence behaviour and communication burden
-
-@fig-convergence compares four federated configurations. FedProx produces smoother optimisation trajectories than plain FedAvg, which is consistent with the role of the proximal term under heterogeneous local objectives. The benefit appears mainly in stability rather than in the final metric alone: the loss curves fluctuate less strongly once local training begins to separate client behaviour. Compression changes a different part of the pipeline. Top-$k$ cuts cumulative communication by roughly one order of magnitude because only 10% of update coordinates are transmitted, yet the learning curves remain in a comparable range. This suggests that, for the present model size and benchmark, most communication can be removed before the detector quality deteriorates sharply.
-
-The combined FedProx + Top-$k$ configuration is therefore best understood as a stability-efficiency compromise rather than a uniformly dominant setting. Its final AUROC in the convergence experiment is lower than that of uncompressed FedAvg, but the communication cost falls from 22.37 MB to 2.24 MB over 60 rounds. For an edge deployment, that trade-off can still be attractive because uplink constraints are often hard rather than optional.
+The communication study shows the intended use of the compression module. In the dedicated Top-$k$ sweep, reducing the transmitted fraction from 100% to 10% lowers the communication volume from 14.92 MB to 1.49 MB while AUROC changes from 0.663 to 0.658. At 1%, communication falls further to 0.149 MB but AUROC decreases to 0.632. In practical terms, the software exposes a tunable operating point rather than a claim that stronger compression is always preferable.
 
 #figure(
   image("figures/fig_fl_convergence.png", width: 100%),
-  caption: [Training loss and cumulative communication over federated rounds for FedAvg, FedProx, Top-$k$, and FedProx + Top-$k$. FedProx yields smoother convergence under non-IID data, while Top-$k$ strongly reduces communication; the combined configuration preserves convergence behaviour with much lower uplink cost.],
-) <fig-convergence>
-
-== Compression ratio versus detection quality
-
-The dedicated communication sweep in @fig-comm isolates the effect of sparsification. Moving from full transmission to the 10% setting reduces communication from 14.92 MB to 1.49 MB, while AUROC changes from 0.663 to 0.658. The drop is therefore small relative to the communication saving. More aggressive compression reveals the expected trade-off. At 1% transmission, the total payload falls to 0.149 MB, but AUROC declines to 0.632. Error feedback clearly delays degradation, yet it does not eliminate it.
-
-This pattern matters operationally. In IIoT deployments, the preferred compression ratio is not the one with the best metric in isolation, but the one that gives an acceptable loss in detection quality for a substantial reduction in traffic. On the present benchmark, the 10% ratio is the most defensible default because it removes most communication while avoiding the sharper performance loss observed at 1%.
+  caption: [Illustrative convergence and communication traces from the federated training engine. FedProx smooths the training curve under heterogeneous clients, while Top-$k$ compression substantially reduces cumulative communication.],
+) <fig-conv>
 
 #figure(
   image("figures/fig_communication_overhead.png", width: 100%),
-  caption: [Communication cost and detection quality across Top-$k$ compression ratios from 100% to 1%. Uplink volume decreases nearly linearly with stronger compression, while AUROC changes modestly; the 10% setting provides a compact trade-off between communication reduction and detection performance.],
+  caption: [Communication-quality trade-off across Top-$k$ compression ratios. The 10% setting provides a practical operating point in the current benchmark, retaining similar AUROC to full transmission at much lower communication volume.],
 ) <fig-comm>
 
-== Example anomaly detection output
+== Example outputs and behavior under key settings
 
-The qualitative example in @fig-ad shows how the local inference stage behaves on a representative client. Reconstruction error rises around anomalous intervals and stays lower during normal segments, which is the expected behaviour for a reconstruction-based detector trained on normal windows only. The figure is not meant as a substitute for the quantitative evaluation. Its value lies in making the final stage of the pipeline explicit: the federated model is still used locally, and the final decision remains a thresholding problem on client-side scores.
+The anomaly-detection output in @fig-ad illustrates what the software produces after federated training. Reconstruction error rises around injected anomalous intervals and remains lower during normal regions on a representative client. This output is useful because it exposes the final local inference stage of the pipeline, which is otherwise easy to lose in a paper focused only on round-level training metrics.
 
 #figure(
   image("figures/fig_anomaly_detection.png", width: 100%),
-  caption: [Representative anomaly detection output for Client 0. The top panel shows the sensor signal and true anomalies, the middle panel shows reconstruction error with the decision threshold, and the bottom panel summarises detection outcomes. Elevated reconstruction error aligns with anomalous intervals, with relatively few false detections in normal regions.],
+  caption: [Representative local anomaly-detection output generated by the software after federated training. The plot combines sensor signal, reconstruction score, threshold, and detection outcomes for one client.],
 ) <fig-ad>
 
-== Robustness under Byzantine updates
-
-The most informative robustness pattern in @fig-rob is not simply that FedAvg degrades, but how quickly the degradation appears once malicious clients are introduced. FedAvg falls from AUROC 0.685 at 10% malicious participation to 0.477 at 20%, which indicates that the combination of non-IID dispersion and poisoning is enough to push mean aggregation into failure. Median behaves differently. Its AUROC increases from 0.741 without attack to 0.804 at 30% malicious clients on this benchmark. That counterintuitive behaviour should not be interpreted as a universal gain from more attackers. It instead suggests that the coordinate-wise median is strongly dampening outlying updates, including some variability introduced by honest heterogeneity.
-
-RFA is also substantially more stable than FedAvg, reaching AUROC about 0.703 at both 20% and 30% attack fractions. It does not outperform median in these runs, but it remains more robust than FedAvg and more stable than Krum. Krum performs worse than the stronger robust baselines, which is consistent with distance-based selection becoming less reliable when honest client updates are already spread by non-IID data. The practical implication is that robust aggregation should be treated as essential once the method is deployed in adversarial settings, but the specific choice of aggregator still depends on how strongly heterogeneity disperses honest updates.
+The robustness study demonstrates the value of the aggregation layer as a configurable software module. Under increasing fractions of malicious clients, FedAvg degrades sharply, whereas median and RFA remain more stable in the reported runs. The exact best rule varies with the attack geometry and with heterogeneity among honest clients. That is precisely why the software exposes several aggregation options in one codebase instead of baking in only one defense.
 
 #figure(
   image("figures/fig_robustness_comparison.png", width: 100%),
-  caption: [Robustness of aggregation methods under increasing fractions of Byzantine clients. The line plot and heatmap report AUROC for FedAvg, median, trimmed mean, Krum, and RFA across attack fractions from 0% to 30%. FedAvg degrades sharply at higher attack rates, whereas median and RFA remain substantially more stable.],
+  caption: [Illustrative robustness output from the aggregation module. The software reports AUROC across attack fractions for FedAvg, median, trimmed mean, Krum, and RFA, making it possible to compare defensive behavior under the same workload.],
 ) <fig-rob>
 
-== On-off attack behaviour
-
-The on-off experiment in @fig-onoff clarifies that evasive attack patterns do not automatically break robust methods, but they do change method ranking less than expected in this benchmark. Median is the strongest performer under both persistent poisoning and on-off behaviour, with AUROC above 0.80 in both cases. RFA remains second, while FedAvg stays far behind. Interestingly, on-off behaviour slightly improves FedAvg and median relative to persistent poisoning, but it reduces RFA from 0.718 to 0.694. The likely explanation is that alternating behaviour softens the extremeness of some poisoned updates, which can occasionally make them less visible to geometric-median style filtering while still leaving the median comparatively stable.
-
-This result is a useful caution against generic claims about evasive attacks. The effect of on-off behaviour depends on the interaction between attack strength, honest heterogeneity, and the geometry of the aggregation rule. For this dataset, the main conclusion is not that on-off attacks defeat robust aggregation, but that they change the stress pattern enough to justify explicit evaluation rather than assuming that persistent poisoning is always the hardest case.
-
-#figure(
-  image("figures/fig_on_off_attack.png", width: 100%),
-  caption: [AUROC under persistent model poisoning and on-off evasion attacks with 20% adversarial clients. Median and RFA remain clearly stronger than FedAvg under both attack patterns, while on-off behaviour changes performance only modestly relative to persistent poisoning in this experiment.],
-) <fig-onoff>
-
-== Ablation of the integrated pipeline
-
-The ablation experiment is the clearest test of whether the four modules contribute distinct value. The answer is yes, but not in the same way. Removing robust aggregation has the largest impact on detection quality under attack, lowering AUROC to 0.460 and F1 to 0.062 despite keeping communication low. This makes the defence module indispensable in the adversarial setting considered here. Removing FedProx also lowers AUROC, although the effect is more moderate, which matches the role of FedProx as a stabiliser rather than a primary defence.
-
-Compression behaves differently. The uncompressed FedProx + RFA variant yields slightly better AUROC and F1 than the compressed full system, but it does so at ten times the communication cost. The integrated pipeline should therefore not be described as the best variant on every single metric. A more accurate interpretation is that it offers the best balance among communication cost, detection quality, and attack resilience. That is the reason it is retained as the recommended reference configuration.
+The ablation study is useful as a software validation example because it shows that the four modules do not contribute in the same way. In the stored results, removing robust aggregation causes the largest performance drop under attack, while removing compression mainly increases communication cost. The integrated configuration is therefore best understood as a balanced default reference workflow rather than a universally dominant setting on every metric.
 
 #figure(
   image("figures/fig_ablation_study.png", width: 100%),
-  caption: [Ablation analysis of the proposed system under 20% model-poisoning attackers. AUROC, F1, and total communication are shown for the full method and four reduced variants. Removing robust aggregation causes the strongest performance drop, whereas removing compression mainly increases communication cost.],
+  caption: [Ablation output from the integrated pipeline. The figure illustrates how communication, stabilization, and robustness modules contribute differently when the full workflow is stressed by adversarial participation.],
 ) <fig-ablation>
 
-#figure(
-  caption: [Numerical summary of the ablation study under 20% model-poisoning attackers.],
-  kind: table,
-)[
-  #set text(size: 8.7pt)
-  #table(
-    columns: (2.5fr, 1fr, 1fr, 1.1fr),
-    align: (left, center, center, center),
-    stroke: 0.35pt,
-    inset: 4pt,
-    table.header(
-      [*Configuration*], [*AUROC*], [*F1*], [*Comm. (MB)*],
-    ),
-    [Full system (FedProx + Top-$k$ + RFA)], [0.702], [0.278], [1.49],
-    [No compression (FedProx + RFA)], [0.688], [0.289], [14.92],
-    [No robust aggregation (FedProx + Top-$k$)], [0.460], [0.062], [1.49],
-    [No FedProx (FedAvg + Top-$k$ + RFA)], [0.671], [0.248], [1.49],
-    [Baseline (FedAvg only)], [0.679], [0.238], [14.92],
-  )
-] <tab-ablation>
+= Impact
 
-= Discussion
+The main impact of FedGuard-IIoT is methodological reuse through software. The repository gives researchers a compact platform for studying how communication compression, non-IID stabilization, and robust aggregation behave together in federated anomaly detection. Existing literature contains many component methods, but practical comparison is harder when each component is packaged in a separate codebase, uses a different workload, or omits reproducible result generation.
 
-The results show that communication efficiency, heterogeneity handling, and robustness cannot be tuned independently. Compression is most convincing when the local optimiser is already stabilised, because aggressive sparsification amplifies noise in drifting client updates. This helps explain why a simple communication study can look favourable at 10% sparsification while the integrated system still requires careful balancing once adversaries are introduced.
+The software is also useful for teaching and benchmarking. Its source layout is small enough to inspect in full, yet broad enough to demonstrate a realistic federated workflow with attacks, communication accounting, and figure reproduction. Because outputs are stored in JSON and the figures are regenerated from code, the project is better suited to extension than a paper-only description. Examples of plausible extensions include replacing the local detector, introducing alternative client-selection policies, adding new robust aggregators, or swapping the synthetic benchmark for a real industrial dataset.
 
-The comparison among robust aggregators also deserves a restrained reading. Median is the strongest method on the stored robustness and on-off experiments, but that does not make it universally preferable. Coordinate-wise aggregation can behave well when the attack produces clear outliers, yet it ignores cross-coordinate structure. RFA is attractive because it remains strong across several attack levels and fits naturally into the compressed update pipeline. Krum is more fragile in this study, which is plausible because distance-based neighbour selection becomes difficult when honest updates are already dispersed by non-IID client distributions.
+= Limitations
 
-The synthetic benchmark supports controlled methodological comparison, but its interpretation has limits. It captures heterogeneity through client-specific frequencies, amplitudes, noise, and anomaly types, yet it does not reproduce the process dependencies, actuation loops, or operator interventions present in real plants. The method should therefore be viewed as a reproducible reference pipeline rather than as a claim of deployment readiness on any specific industrial control system. Transfer to real settings is most plausible for the structural lessons: local thresholding remains useful under heterogeneous operating regimes, communication can often be reduced sharply before quality collapses, and robust aggregation becomes important once malicious participation is credible.
+The reported benchmark is synthetic. It captures heterogeneous periodicities, amplitudes, noise levels, and anomaly types, but it does not reproduce plant-level control loops, maintenance events, or operator interventions. The software should therefore be read as a reproducible reference pipeline, not as a deployment-ready industrial product.
 
-The method may fail under several conditions. Very severe compression will eventually remove too much information even with error feedback. Strongly personalized client behaviour could make a single shared encoder inadequate. Adaptive adversaries that explicitly optimise against the selected robust rule may also erode performance. These are natural directions for extending the pipeline with adaptive thresholding, stronger personalization, or trust-based server-side checks.
+The current repository also has packaging limitations relevant to SoftwareX submission. The absence of a visible license prevents clear reuse conditions. No archived release or DOI was found, which weakens permanent reproducibility. The README is serviceable as a starting manual, but a more explicit user guide and release workflow would improve reuse.
 
-= Conclusion
+At the method level, strong compression eventually degrades performance, a single shared encoder may be insufficient for strongly personalized clients, and adaptive adversaries could erode the present robust aggregation rules. These are limitations of the current software configuration, not claims of universal failure.
 
-This article documents a compact federated anomaly detection pipeline for constrained IIoT clients and shows how four standard ingredients can be integrated into one reproducible workflow: local LSTM autoencoder training, communication-efficient update compression, FedProx stabilisation, and Byzantine-robust aggregation. The empirical contribution is not a claim that one configuration dominates every metric, but that the integrated design gives a workable balance between communication cost, detection quality, and robustness. On the present benchmark, the 10% compression setting preserves similar AUROC to full transmission while reducing payload substantially, and robust aggregation is necessary once malicious updates are present.
+= Conclusions and future work
 
-The method is intended to be reusable. Another researcher can reproduce the benchmark generation process, the training loop, the compression schedule, the attack scenarios, and the evaluation workflow from the information reported here and from the accompanying code base. That reproducible integration, rather than any single standalone algorithmic novelty, is the central contribution of the article.
+FedGuard-IIoT reframes communication-aware and adversarial federated anomaly detection as a reproducible software artifact. The repository integrates synthetic data generation, local LSTM autoencoder training, Top-$k$ error-feedback compression, FedProx stabilization, robust aggregation, JSON result storage, and figure regeneration in one executable workflow. Illustrative runs show that the current implementation can expose useful trade-offs between communication cost, anomaly-detection quality, and robustness under attack.
 
-= Code and Data Availability
+The contribution is therefore software-centered. The repository makes it possible to rerun the benchmark, inspect intermediate modules, compare aggregation rules, and extend the pipeline with new components. Future work should focus on completing the repository for archival submission, adding real industrial datasets, separating client-level and pooled evaluation more explicitly, and packaging the code with a permanent release and clear license.
 
-The source code, generated benchmark, experiment scripts, and figure-generation utilities are available in the project repository: #link("https://github.com/Bekzat158/multi-agent-system-assig"). The synthetic dataset is generated procedurally from fixed random seeds and parameter settings reported in the manuscript and stored in `results/experiment_results.json`.
+= CRediT authorship contribution statement
 
-= Funding
+Sundetkhan Bekzat: Conceptualization, Software, Investigation, Visualization, Writing - original draft. Baibolat Bekarys: Software, Validation, Writing - review & editing. Author confirmation required.
 
-This research did not receive any specific grant from funding agencies in the public, commercial, or not-for-profit sectors.
+= Declaration of competing interest
+
+The authors declare that they have no known competing financial interests or personal relationships that could have appeared to influence the work reported in this article.
 
 = Acknowledgements
 
-The authors thank Seema Rawat for course supervision and feedback during the development of the project from which this method article was derived.
+The authors thank Seema Rawat for course supervision and feedback during the development of the project from which this software paper was derived. Author confirmation required.
 
-= Declaration of Competing Interest
+= Funding
 
-The authors declare that they have no known competing financial interests or personal relationships that could have appeared to influence the work reported in this article.
+This research did not receive any specific grant from funding agencies in the public, commercial, or not-for-profit sectors. Author confirmation required.
+
+= Data availability
+
+No external dataset was used. The experiments rely on a procedurally generated synthetic benchmark created by the repository from fixed random seeds and stored locally when `run_experiments.py` is executed. The source code and generated results are available in the project repository at `https://github.com/Bekzat158/multi-agent-system-assig`. A permanent archived release and any related DOI require author completion.
 
 #pagebreak(weak: true)
 = References
@@ -370,102 +279,60 @@ The authors declare that they have no known competing financial interests or per
 ]
 
 #ref-entry("4")[
-  Karimireddy, S. P., Kale, S., Mohri, M., Reddi, S. J., Stich, S. U., & Suresh, A. T. (2020).
-  SCAFFOLD: Stochastic controlled averaging for federated learning.
-  _ICML 2020_, PMLR 119.
-]
-
-#ref-entry("5")[
-  Li, T., Hu, S., Beirami, A., & Smith, V. (2021).
-  Ditto: Fair and robust federated learning through personalization.
-  _ICML 2021_, PMLR 139.
-]
-
-#ref-entry("6")[
-  Dinh, C. T., Tran, N. H., & Nguyen, T. D. (2020).
-  Personalized federated learning with Moreau envelopes.
-  _NeurIPS 2020_.
-]
-
-#ref-entry("7")[
   Blanchard, P., Mhamdi, E. M. E., Guerraoui, R., & Stainer, J. (2017).
   Machine learning with adversaries: Byzantine tolerant gradient descent.
   _NeurIPS 2017_.
 ]
 
-#ref-entry("8")[
-  El Mhamdi, E. M., Guerraoui, R., & Rouault, S. (2018).
-  The hidden vulnerability of distributed learning in Byzantium.
-  _ICML 2018_, PMLR 80.
-]
-
-#ref-entry("9")[
+#ref-entry("5")[
   Yin, D., Chen, Y., Kannan, R., & Bartlett, P. (2018).
   Byzantine-robust distributed learning: Towards optimal statistical rates.
   _ICML 2018_, PMLR 80.
 ]
 
-#ref-entry("10")[
+#ref-entry("6")[
   Pillutla, K., Kakade, S. M., & Harchaoui, Z. (2022).
   Robust aggregation for federated learning.
   _IEEE Transactions on Signal Processing_, 70, 1142--1154.
 ]
 
-#ref-entry("11")[
+#ref-entry("7")[
   Cao, X., Fang, M., Liu, J., & Gong, N. Z. (2021).
   FLTrust: Byzantine-robust federated learning via trust bootstrapping.
   _NDSS 2021_.
 ]
 
-#ref-entry("12")[
+#ref-entry("8")[
   Bagdasaryan, E., Veit, A., Hua, Y., Estrin, D., & Shmatikov, V. (2020).
   How to backdoor federated learning.
   _AISTATS 2020_, PMLR 108.
 ]
 
-#ref-entry("13")[
+#ref-entry("9")[
   Fang, M., Cao, X., Jia, J., & Gong, N. Z. (2020).
   Local model poisoning attacks to Byzantine-robust federated learning.
   _USENIX Security 2020_.
 ]
 
-#ref-entry("14")[
+#ref-entry("10")[
   Xie, C., Chen, M., Chen, P.-Y., & Li, B. (2023).
   Attacks against federated learning defense systems and their implications.
   _JMLR_, 24(305), 1--43.
 ]
 
-#ref-entry("15")[
+#ref-entry("11")[
   Yuan, D., Hu, S., Guo, S., Zhang, J., & Yang, B. (2020).
   Deep anomaly detection for time-series data in industrial IoT: A communication-efficient on-device federated learning approach.
   _IEEE Internet of Things Journal_, 8(9), 6348--6358.
 ]
 
-#ref-entry("16")[
-  Ruff, L., Vandermeulen, R., Goernitz, N., et al. (2018).
-  Deep one-class classification.
-  _ICML 2018_, PMLR 80.
-]
-
-#ref-entry("17")[
-  Zhang, C., Zhu, Y., Zhang, X., & Li, Z. (2022).
-  Deep federated anomaly detection for multivariate time series data.
-  _arXiv:2205.04571_.
-]
-
-#ref-entry("18")[
+#ref-entry("12")[
   Audibert, J., Michiardi, P., Guyard, F., Marti, S., & Zuluaga, M. A. (2022).
   Deep learning for anomaly detection in time series: A survey.
   _ACM Computing Surveys_, 54(3).
 ]
 
-#ref-entry("19")[
-  Alistarh, D., De Sa, C., & Shah, N. (2018).
-  The convergence of sparsified gradient methods.
-  _NeurIPS 2018_.
-]
-
-#ref-entry("20")[
+#ref-entry("13")[
   Park, D., Hoshi, Y., & Kemp, C. C. (2018).
   A multimodal anomaly detector for robot-assisted feeding using an LSTM-based variational autoencoder.
   _IEEE Robotics and Automation Letters_, 4(2), 1543--1550.

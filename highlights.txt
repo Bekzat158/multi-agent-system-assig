@@ -1,0 +1,5 @@
+- Open-source pipeline for federated IIoT anomaly detection
+- Integrates LSTM-AE, FedProx, Top-k, and robust aggregation
+- Reproduces benchmark runs, JSON outputs, and article figures
+- Exposes communication-quality trade-offs under client heterogeneity
+- Compares aggregation behavior under Byzantine update poisoning
