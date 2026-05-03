@@ -51,7 +51,8 @@ def setup_style():
     """Apply a compact, publication-safe style across all figures."""
     plt.rcParams.update(
         {
-            "font.family": "DejaVu Sans",
+            "font.family": "serif",
+            "font.serif": ["Times New Roman", "Times", "Nimbus Roman", "DejaVu Serif"],
             "font.size": 8,
             "axes.titlesize": 9,
             "axes.labelsize": 9,
@@ -73,6 +74,7 @@ def setup_style():
             "lines.linewidth": 1.6,
             "pdf.fonttype": 42,
             "ps.fonttype": 42,
+            "mathtext.fontset": "stix",
         }
     )
     sns.set_style("white")
@@ -465,10 +467,10 @@ def plot_anomaly_detection(client_data: list, model, device: str = "cpu"):
 def plot_ablation_study(ablation_results: dict):
     """Bar chart comparing ablation configurations."""
     setup_style()
-    fig, axes = plt.subplots(1, 3, figsize=(7.1, 3.2))
+    fig, axes = plt.subplots(1, 3, figsize=(8.6, 3.5))
 
     names = list(ablation_results.keys())
-    short_names = ["Full", "No Comp", "No Robust", "No FedProx", "Baseline"]
+    short_names = ["Full", "No\nComp", "No\nRobust", "No\nProx", "Baseline"]
     auroc_vals = [ablation_results[name]["auroc"] for name in names]
     f1_vals = [ablation_results[name]["f1"] for name in names]
     mb_vals = [ablation_results[name]["total_mb"] for name in names]
@@ -478,10 +480,11 @@ def plot_ablation_study(ablation_results: dict):
 
     def bar_panel(ax, values, ylabel, ylim, fmt):
         bars = ax.bar(
-            x, values, color=palette, edgecolor="#666666", linewidth=0.5, width=0.66
+            x, values, color=palette, edgecolor="#666666", linewidth=0.5, width=0.58
         )
         ax.set_xticks(x)
         ax.set_xticklabels(short_names, rotation=0)
+        ax.tick_params(axis="x", labelsize=7, pad=3)
         style_axis(ax, ylabel=ylabel)
         ax.set_ylim(*ylim)
         offset = (ylim[1] - ylim[0]) * 0.03
@@ -492,7 +495,7 @@ def plot_ablation_study(ablation_results: dict):
                 format(value, fmt),
                 ha="center",
                 va="bottom",
-                fontsize=8,
+                fontsize=7.2,
             )
 
     bar_panel(axes[0], auroc_vals, "AUROC", (0.40, 0.76), ".2f")
@@ -502,30 +505,30 @@ def plot_ablation_study(ablation_results: dict):
     add_panel_label(axes[0], "A")
     add_panel_label(axes[1], "B")
     add_panel_label(axes[2], "C")
-    fig.subplots_adjust(top=0.93, left=0.08, right=0.99, bottom=0.22, wspace=0.28)
+    fig.subplots_adjust(top=0.90, left=0.08, right=0.99, bottom=0.26, wspace=0.30)
     save(fig, "fig_ablation_study.png")
 
 
 def plot_architecture_diagram():
     """Integrated architecture figure showing the end-to-end pipeline."""
     setup_style()
-    fig, ax = plt.subplots(figsize=(13.5, 4.8))
-    ax.set_xlim(0, 15.2)
-    ax.set_ylim(0, 5.5)
+    fig, ax = plt.subplots(figsize=(13.2, 7.4))
+    ax.set_xlim(0, 16.1)
+    ax.set_ylim(0, 7.4)
     ax.axis("off")
 
     module_bands = [
-        (0.55, 3.45, "#EAF2FB", "M1  Anomaly detection model"),
-        (3.45, 7.10, "#EEF7EC", "M2  Communication-efficient FL"),
-        (7.10, 9.25, "#FFF5E8", "M3  Non-IID stabilization"),
-        (9.25, 14.70, "#F4EDF7", "M4  Byzantine-robust aggregation"),
+        (0.55, 3.45, "#EAF2FB", "M1\nLocal detector"),
+        (3.45, 7.10, "#EEF7EC", "M2\nCommunication-efficient FL"),
+        (7.10, 9.55, "#FFF5E8", "M3\nNon-IID\nstabilization"),
+        (9.55, 14.70, "#F4EDF7", "M4\nRobust\naggregation"),
     ]
     for x0, x1, color, label in module_bands:
         ax.add_patch(
             mpatches.FancyBboxPatch(
-                (x0, 1.2),
+                (x0, 1.55),
                 x1 - x0,
-                3.25,
+                3.95,
                 boxstyle="round,pad=0.03,rounding_size=0.08",
                 linewidth=0,
                 facecolor=color,
@@ -533,16 +536,16 @@ def plot_architecture_diagram():
         )
         ax.text(
             (x0 + x1) / 2,
-            4.62,
+            6.72,
             label,
             ha="center",
             va="center",
-            fontsize=8.6,
+            fontsize=8.2,
             fontweight="bold",
         )
 
     def node(
-        x, y, w, h, label, face="#FFFFFF", edge="#5A5A5A", fontsize=8.2, weight="normal"
+        x, y, w, h, label, face="#FFFFFF", edge="#5A5A5A", fontsize=8.9, weight="normal"
     ):
         rect = mpatches.FancyBboxPatch(
             (x, y),
@@ -564,7 +567,7 @@ def plot_architecture_diagram():
             fontweight=weight,
         )
 
-    def arrow(x1, y1, x2, y2, label=None):
+    def arrow(x1, y1, x2, y2, label=None, label_y_offset=0.22):
         ax.annotate(
             "",
             xy=(x2, y2),
@@ -574,67 +577,66 @@ def plot_architecture_diagram():
         if label:
             ax.text(
                 (x1 + x2) / 2,
-                y1 + 0.22,
+                y1 + label_y_offset,
                 label,
                 ha="center",
                 va="bottom",
-                fontsize=7.5,
+                fontsize=7.6,
                 color="#5C5C5C",
             )
 
-    node(0.80, 2.25, 1.15, 1.05, "K edge\nclients", face="#FFFFFF", weight="bold")
-    node(2.10, 2.25, 1.25, 1.05, "Input IIoT\nwindows")
-    node(3.65, 2.25, 1.25, 1.05, "Windowing\nNormalize")
-    node(5.15, 2.25, 1.45, 1.05, "Local LSTM-AE\ntraining", face="#F8FBFE")
-    node(6.85, 2.25, 1.25, 1.05, "Top-k + error\nfeedback", face="#FFF6EA")
-    node(8.35, 2.25, 1.15, 1.05, "FedProx\nterm", face="#FFF1E1")
-    node(9.75, 2.25, 1.15, 1.05, "Compressed\nuplink")
-    node(11.15, 2.25, 1.60, 1.05, "RFA / Median /\nTrimmed Mean / Krum", face="#FAF6FC")
-    node(13.05, 2.25, 1.20, 1.05, "Global\nmodel")
-    node(14.45, 2.25, 0.55, 1.05, "", face="#FFFFFF", edge="#FFFFFF")
+    node(0.78, 2.85, 1.18, 1.15, "K edge\nclients", face="#FFFFFF", weight="bold")
+    node(2.12, 2.85, 1.28, 1.15, "Input IIoT\nwindows")
+    node(3.72, 2.85, 1.34, 1.15, "Windowing\nNormalize")
+    node(5.33, 2.85, 1.56, 1.15, "Local LSTM-AE\ntraining", face="#F8FBFE")
+    node(7.15, 2.85, 1.30, 1.15, "Top-k + error\nfeedback", face="#FFF6EA")
+    node(8.72, 2.85, 1.16, 1.15, "FedProx\nterm", face="#FFF1E1")
+    node(10.18, 2.85, 1.26, 1.15, "Compressed\nuplink")
+    node(11.70, 2.85, 1.72, 1.15, "RFA / Median /\nTrimmed Mean / Krum", face="#FAF6FC")
+    node(13.72, 2.85, 1.28, 1.15, "Global\nmodel")
 
-    node(13.00, 0.65, 1.25, 0.88, "Local\nthreshold")
+    node(13.68, 1.05, 1.35, 0.98, "Local\nthreshold")
     node(
-        14.40,
-        0.65,
-        0.65,
-        0.88,
+        15.15,
+        1.05,
+        0.72,
+        0.98,
         "AUROC\nF1\nComm.",
         face="#F7F7F7",
-        fontsize=7.8,
+        fontsize=8.2,
         weight="bold",
     )
 
-    arrow(1.95, 2.78, 2.10, 2.78)
-    arrow(3.35, 2.78, 3.65, 2.78)
-    arrow(4.90, 2.78, 5.15, 2.78)
-    arrow(6.60, 2.78, 6.85, 2.78)
-    arrow(8.10, 2.78, 8.35, 2.78)
-    arrow(9.50, 2.78, 9.75, 2.78, label="client to server")
-    arrow(10.90, 2.78, 11.15, 2.78)
-    arrow(12.75, 2.78, 13.05, 2.78)
-    arrow(13.65, 2.25, 13.65, 1.53, label="broadcast")
-    arrow(14.25, 1.09, 14.40, 1.09)
+    arrow(1.96, 3.42, 2.12, 3.42)
+    arrow(3.40, 3.42, 3.72, 3.42)
+    arrow(5.06, 3.42, 5.33, 3.42)
+    arrow(6.89, 3.42, 7.15, 3.42)
+    arrow(8.45, 3.42, 8.72, 3.42)
+    arrow(9.88, 3.42, 10.18, 3.42)
+    arrow(11.44, 3.42, 11.70, 3.42)
+    arrow(13.42, 3.42, 13.72, 3.42)
+    arrow(14.35, 2.85, 14.35, 2.03, label="broadcast", label_y_offset=0.08)
+    arrow(15.03, 1.54, 15.15, 1.54)
 
-    node(8.15, 4.02, 1.55, 0.58, "non-IID local drift", face="#FFF5E8", fontsize=7.8)
-    node(11.10, 4.02, 1.65, 0.58, "Byzantine updates", face="#FBEAEC", fontsize=7.8)
-    node(6.25, 0.52, 1.70, 0.58, "bandwidth constraint", face="#EEF7EC", fontsize=7.8)
+    node(8.56, 5.55, 1.62, 0.50, "non-IID\nlocal drift", face="#FFF5E8", fontsize=7.0)
+    node(11.82, 5.55, 1.82, 0.50, "Byzantine\nupdates", face="#FBEAEC", fontsize=7.0)
+    node(6.98, 0.90, 1.92, 0.64, "bandwidth constraint", face="#EEF7EC", fontsize=8.0)
     ax.annotate(
         "",
-        xy=(8.75, 3.33),
-        xytext=(8.92, 4.02),
+        xy=(9.34, 4.00),
+        xytext=(9.38, 5.55),
         arrowprops=dict(arrowstyle="-|>", lw=0.9, color="#8C8C8C"),
     )
     ax.annotate(
         "",
-        xy=(11.95, 3.33),
-        xytext=(11.95, 4.02),
+        xy=(12.58, 4.00),
+        xytext=(12.72, 5.55),
         arrowprops=dict(arrowstyle="-|>", lw=0.9, color="#8C8C8C"),
     )
     ax.annotate(
         "",
-        xy=(7.10, 2.23),
-        xytext=(7.10, 1.10),
+        xy=(7.72, 2.84),
+        xytext=(7.72, 1.54),
         arrowprops=dict(arrowstyle="-|>", lw=0.9, color="#8C8C8C"),
     )
 
